@@ -81,7 +81,7 @@ def create_default_figures():
     return figures
 
 
-class WFSServ(tornado.web.Application):
+class WFSsrv(tornado.web.Application):
     class HomeHandler(tornado.web.RequestHandler):
         """
         Serves the main HTML page.
@@ -628,11 +628,11 @@ class WFSServ(tornado.web.Application):
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             debug=True
         )
-        super(WFSServ, self).__init__(handlers, **settings)
+        super(WFSsrv, self).__init__(handlers, **settings)
 
 
 if __name__ == "__main__":
-    application = WFSServ()
+    application = WFSsrv()
 
     http_server = tornado.httpserver.HTTPServer(application)
     http_server.listen(8080)
