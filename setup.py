@@ -30,12 +30,12 @@ conf = ConfigParser()
 conf.read(['setup.cfg'])
 metadata = dict(conf.items('metadata'))
 
-PACKAGENAME = metadata.get('package_name', 'wfsserv')
+PACKAGENAME = metadata.get('package_name', 'wfssrv')
 DESCRIPTION = metadata.get('description', 'MMT Wavefront Sensor Interface')
 AUTHOR = metadata.get('author', 'T. E. Pickering')
 AUTHOR_EMAIL = metadata.get('author_email', '')
 LICENSE = metadata.get('license', 'unknown')
-URL = metadata.get('url', 'https://github.com/MMTObservatory/WFSserv')
+URL = metadata.get('url', 'https://github.com/MMTObservatory/WFSsrv')
 
 # order of priority for long_description:
 #   (1) set in setup.cfg,
