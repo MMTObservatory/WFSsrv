@@ -581,7 +581,7 @@ class WFSsrv(tornado.web.Application):
 
         self.wfs = None
         self.wfs_systems = {}
-        self.wfs_keys = ['newf9', 'f9', 'f5', 'mmirs']
+        self.wfs_keys = ['newf9', 'f5', 'mmirs', 'binospec']
         self.wfs_names = {}
         for w in self.wfs_keys:
             self.wfs_systems[w] = WFSFactory(wfs=w)
