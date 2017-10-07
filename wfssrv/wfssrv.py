@@ -204,6 +204,7 @@ class WFSsrv(tornado.web.Application):
                     if zresults['residual_rms'] < 600 * u.nm:
                         self.application.has_pending_m1 = True
                         self.application.has_pending_coma = True
+                        self.application.has_pending_focus = True
                         log.info("%s: all proposed corrections valid." % filename)
                     elif zresults['residual_rms'] <= 1000 * u.nm:
                         self.application.has_pending_focus = True
@@ -264,7 +265,7 @@ class WFSsrv(tornado.web.Application):
 
     class FocusCorrectHandler(tornado.web.RequestHandler):
         def get(self):
-            log.info("M2 corrections")
+            log.info("M2 focus corrections")
             if self.application.has_pending_focus and self.application.wfs.connected:
                 self.application.wfs.secondary.focus(self.application.pending_focus)
                 self.application.has_pending_focus = False
@@ -279,7 +280,7 @@ class WFSsrv(tornado.web.Application):
 
     class ComaCorrectHandler(tornado.web.RequestHandler):
         def get(self):
-            log.info("M2 corrections")
+            log.info("M2 coma corrections")
             if self.application.has_pending_coma and self.application.wfs.connected:
                 self.application.wfs.secondary.correct_coma(self.application.pending_cc_x, self.application.pending_cc_y)
                 self.application.has_pending_coma = False
