@@ -283,7 +283,7 @@ class WFSsrv(tornado.web.Application):
             if self.application.has_pending_coma and self.application.wfs.connected:
                 self.application.wfs.secondary.correct_coma(self.application.pending_cc_x, self.application.pending_cc_y)
                 self.application.has_pending_coma = False
-                log_str = "Sending {1:0.1f}/{2:0.1f} CC_X/CC_Y to secondary...".format(
+                log_str = "Sending {0:0.1f}/{1:0.1f} CC_X/CC_Y to secondary...".format(
                     self.application.pending_cc_x,
                     self.application.pending_cc_y
                 )
