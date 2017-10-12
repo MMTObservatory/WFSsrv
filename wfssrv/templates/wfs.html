@@ -227,20 +227,26 @@
         });
         $('#focuscorrect').on('click', function() {
             $.get("focuscorrect", function(data, status) {
-                $('#focuscorrect').prop("disabled", true)
-                alert(data);
+                $('#focuscorrect').prop("disabled", true);
+                if (continuous == false) {
+                    alert(data);
+                };
             });
         });
         $('#comacorrect').on('click', function() {
             $.get("comacorrect", function(data, status) {
-                $('#comacorrect').prop("disabled", true)
-                alert(data);
+                $('#comacorrect').prop("disabled", true);
+                if (continuous == false) {
+                    alert(data);
+                };
             });
         });
         $('#m1correct').on('click', function() {
             $.get("m1correct", function(data, status) {
-                $('#m1correct').prop("disabled", true)
-                alert(data);
+                $('#m1correct').prop("disabled", true);
+                if (continuous == false) {
+                    alert(data);
+                };
             });
         });
         $('#clear').on('click', function() {
