@@ -197,6 +197,7 @@
         </div>
 
         <script>
+        var running = false;
         var continuous = false;
         var orig_m1g = 0.5;
         var orig_m2g = 1.0;
@@ -288,6 +289,7 @@
         };
         $('#analyze').on('click', function() {
             $(this).text("Running...");
+            running = true;
             var file = $('#datafile').val();
             var dir = $('#datadir').html();
             var mode = $('#mode').val();
@@ -306,6 +308,9 @@
                         $('#focuscorrect').trigger('click');
                         $('#comacorrect').trigger('click');
                         $('#m1correct').trigger('click');
+                        rtimer = setTimeout(function() {
+                            running = false;
+                        }, 5000);
                     };
                 };
                 $('#analyze').text("Analyze");
@@ -323,11 +328,13 @@
         });
         function doNextFile() {
             $.getJSON("files", {format: "json"}).done(function(data) {
-                if (data.length > 0) {
-                    if (data[0] != latest_file) {
-                        latest_file = data[0];
-                        $('#datafile').val(latest_file);
-                        $('#analyze').trigger('click');
+                if (running == false) {
+                    if (data.length > 0) {
+                        if (data[0] != latest_file) {
+                            latest_file = data[0];
+                            $('#datafile').val(latest_file);
+                            $('#analyze').trigger('click');
+                        };
                     };
                 };
                 timer = setTimeout(doNextFile, 1000);
