@@ -308,11 +308,11 @@
                         $('#focuscorrect').trigger('click');
                         $('#comacorrect').trigger('click');
                         $('#m1correct').trigger('click');
-                        rtimer = setTimeout(function() {
-                            running = false;
-                        }, 5000);
                     };
                 };
+                rtimer = setTimeout(function() {
+                    running = false;
+                }, 5000);
                 $('#analyze').text("Analyze");
                 $('#zernikes').text(data);
             });
