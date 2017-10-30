@@ -1,0 +1,50 @@
+#!/usr/bin/env tclsh
+
+#RJC - added to keep record
+#    - may need to start mmirs serve
+#    - mmtserv mmirs-wfs restart
+
+set datadir /mmt/shwfs/datadir
+set service_port 9876
+
+set count 1
+
+proc receive_file {channel_name client_address client_port} {
+        fconfigure $channel_name -translation binary
+        gets $channel_name line
+        foreach {name size} $line {}
+        #set fully_qualified_filename [file join $::destination_directory $name]
+
+    #If the rawdata directory doesn't exists, then make it!                                                                                 
+    if { ![file exists "/mmt/shwfs/datadir/rawdata/"]} {
+        exec /usr/bin/mkdir "/mmt/shwfs/datadir/rawdata/"
+    }
+
+    set filename "$::datadir/rawdata/mmirs_wfs_[format %04d $::count].fits"
+    set rawfile "$::datadir/mmirs_wfs_[format %04d $::count].fits"
+    
+    incr ::count
+    
+    set fp [open $filename w]
+    fconfigure $fp -translation binary
+    
+    fcopy $channel_name $fp -size $size
+    
+    close $channel_name
+    close $fp
+
+    exec /mmt/shwfs/header.pl $filename 1.0 MMIRS
+
+    exec /usr/bin/cp $filename $rawfile
+    
+    set pipefile  "/mmt/shwfs/datadir/mmirs-pipe.log"
+    set fileId [open $pipefile "w"]
+    puts $fileId $rawfile
+    puts $fileId [clock seconds]
+    close $fileId
+    
+}
+
+
+  socket -server receive_file $service_port
+  vwait forever
