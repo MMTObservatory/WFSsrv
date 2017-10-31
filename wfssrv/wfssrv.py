@@ -198,7 +198,7 @@ class WFSsrv(tornado.web.Application):
                     figures['totalforces'].set_label("Total M1 Actuator Forces")
                     psf, figures['psf'] = tel.psf(zv=zvec.copy())
                     log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
-                    zvec_file = os.path.join(self.application.datadir, filename + ".zernike")
+                    zvec_file = self.application.datadir / (filename + ".zernike")
                     zvec.save(filename=zvec_file)
                     self.application.wavefront_fit = zvec
 
@@ -223,7 +223,7 @@ class WFSsrv(tornado.web.Application):
                     self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
                     self.application.pending_forces, self.application.pending_m1focus = \
                         self.application.wfs.calculate_primary(zvec, threshold=m1gain*zresults['residual_rms'])
-                    self.application.pending_forcefile = os.path.join(self.application.datadir, filename + ".forces")
+                    self.application.pending_forcefile = self.application.datadir / (filename + ".forces")
                     limit = np.round(np.abs(self.application.pending_forces['force']).max())
                     figures['forces'] = tel.plot_forces(
                         self.application.pending_forces,
@@ -335,7 +335,7 @@ class WFSsrv(tornado.web.Application):
                 datadir = self.get_argument("datadir")
                 if os.path.isdir(datadir):
                     log.info(f"setting datadir to {datadir}")
-                    self.application.datadir = datadir
+                    self.application.datadir = pathlib.Path(datadir)
             except:
                 log.info("no datadir specified")
             finally:
@@ -401,7 +401,7 @@ class WFSsrv(tornado.web.Application):
 
     class FilesHandler(tornado.web.RequestHandler):
         def get(self):
-            p = pathlib.Path(self.application.datadir)
+            p = self.application.datadir
             fullfiles = sorted(p.glob("*_*.fits"), key=lambda x: x.stat().st_mtime)
             files = []
             for f in fullfiles:
@@ -605,19 +605,19 @@ class WFSsrv(tornado.web.Application):
 
     def __init__(self):
         if 'WFSROOT' in os.environ:
-            self.datadir = os.environ['WFSROOT']
+            self.datadir = pathlib.Path(os.environ['WFSROOT']) / "datadir"
         else:
-            self.datadir = "/mmt/shwfs/datadir"
+            self.datadir = pathlib.Path("/mmt/shwfs/datadir")
 
         if os.path.isdir(self.datadir):
-            self.logfile = os.path.join(self.datadir, "wfs.log")
+            self.logfile = self.datadir / "wfs.log")
             formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler = logging.handlers.WatchedFileHandler(self.logfile)
             handler.setFormatter(formatter)
             log.addHandler(handler)
             enable_pretty_logging()
         else:
-            self.logfile = "/dev/null"
+            self.logfile = pathlib.Path("/dev/null")
 
         self.redis_host = "https://api.mmto.arizona.edu/APIv1"
         self.http = urllib3.PoolManager()
