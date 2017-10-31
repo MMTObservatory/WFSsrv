@@ -1,50 +1,72 @@
 #!/usr/bin/env tclsh
 
-#RJC - added to keep record
-#    - may need to start mmirs serve
-#    - mmtserv mmirs-wfs restart
+package require dns
 
-set datadir /mmt/shwfs/datadir
-set service_port 9876
+if {[info exists env(WFSROOT)]} {
+    set datadir [file join $env(WFSROOT) datadir]
+} else {
+    set datadir /mmt/shwfs/datadir
+}
 
-set count 1
+# nominally the port should be 9876, but query for it via DNS to be sure and in case it gets moved
+set tok [dns::resolve _mmirs-wfs._tcp.mmto.arizona.edu -type SRV]
+set res [dns::result $tok]
+set service_port [lindex [lindex [lindex $res 0] 11] 5]
+
+set mmirs_count 1
+set bino_count 1
 
 proc receive_file {channel_name client_address client_port} {
-        fconfigure $channel_name -translation binary
-        gets $channel_name line
-        foreach {name size} $line {}
-        #set fully_qualified_filename [file join $::destination_directory $name]
+    fconfigure $channel_name -translation binary
+    # need to confirm with SAO folks why this is done
+    gets $channel_name line
+    foreach {saoname size} $line {}
+    # set fully_qualified_filename [file join $::destination_directory $name]
 
-    #If the rawdata directory doesn't exists, then make it!                                                                                 
-    if { ![file exists "/mmt/shwfs/datadir/rawdata/"]} {
-        exec /usr/bin/mkdir "/mmt/shwfs/datadir/rawdata/"
+    # If the newdata directory doesn't exist, then make it!
+    set newdatadir [file join $::datadir newdata]
+    if { ![file exists $newdatadir]} {
+        exec /usr/bin/mkdir $newdatadir
     }
 
-    set filename "$::datadir/rawdata/mmirs_wfs_[format %04d $::count].fits"
-    set rawfile "$::datadir/mmirs_wfs_[format %04d $::count].fits"
-    
-    incr ::count
-    
-    set fp [open $filename w]
+    # we write new images into the newdata subdirectory, update the headers there, and then move them up to
+    # where the wfs analysis server looks for new files.
+    set newfile [file join $newdatadir newfile.fits]
+    set mmirs_file [file join $::datadir mmirs_wfs_[format %04d $::mmirs_count].fits]
+    set bino_file [file join $::datadir bino_wfs_[format %04d $::bino_count].fits]
+
+    set fp [open $newfile w]
     fconfigure $fp -translation binary
-    
+
     fcopy $channel_name $fp -size $size
-    
+
     close $channel_name
     close $fp
 
-    exec /mmt/shwfs/header.pl $filename 1.0 MMIRS
+    set command "wfs_header.py $newfile"
+    set cid [open |$command r]
+    set inst_name [read $cid]
+    close $cid
 
-    exec /usr/bin/cp $filename $rawfile
-    
-    set pipefile  "/mmt/shwfs/datadir/mmirs-pipe.log"
-    set fileId [open $pipefile "w"]
-    puts $fileId $rawfile
-    puts $fileId [clock seconds]
-    close $fileId
-    
+    set pipefile [file join $::datadir saowfs-pipe.log]
+    set pipeId [open $pipefile "w"]
+
+    if [string equal $inst_name mmirs] {
+        exec /usr/bin/mv $newfile $mmirs_file
+        puts $pipeId $mmirs_file
+        incr ::mmirs_count
+    }
+
+    if [string equal $inst_name binospec] {
+        exec /usr/bin/mv $newfile $bino_file
+        puts $pipeId $bino_file
+        incr ::bino_count
+    }
+
+    puts $pipeId [clock seconds]
+    close $pipeId
+
 }
 
-
-  socket -server receive_file $service_port
-  vwait forever
+socket -server receive_file $service_port
+vwait forever
