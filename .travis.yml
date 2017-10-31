@@ -32,7 +32,7 @@ env:
         - ASTROPY_VERSION=stable
         - MAIN_CMD='python setup.py'
         - SETUP_CMD='test'
-        - PIP_DEPENDENCIES='poppy git+https://github.com/MMTObservatory/mmtwfs'
+        - PIP_DEPENDENCIES='poppy git+https://github.com/MMTObservatory/mmtwfs git+https://github.com/MMTObservatory/camsrv'
         - EVENT_TYPE='pull_request push'
 
         # For this package-template, we include examples of Cython modules,
