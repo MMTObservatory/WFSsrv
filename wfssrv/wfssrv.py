@@ -88,6 +88,7 @@ class WFSsrv(tornado.web.Application):
         """
         def get(self):
             self.render("home.html", current=self.application.wfs, wfslist=self.application.wfs_names)
+            self.finish()
 
     class SelectHandler(tornado.web.RequestHandler):
         def get(self):
@@ -95,17 +96,19 @@ class WFSsrv(tornado.web.Application):
                 wfs = self.get_argument("wfs")
                 render = self.get_argument("render", default=False)
                 if wfs in self.application.wfs_keys:
-                    log.info("setting %s" % wfs)
+                    log.info(f"Setting {wfs}")
                     self.application.wfs = self.application.wfs_systems[wfs]
             except:
-                log.warning("Must specify valid wfs: %s." % wfs)
+                log.warning(f"Must specify valid wfs: {wfs}.")
+            finally:
+                self.finish()
 
     class WFSPageHandler(tornado.web.RequestHandler):
         def get(self):
             try:
                 wfs = self.get_argument("wfs")
                 if wfs in self.application.wfs_keys:
-                    log.info("setting %s" % wfs)
+                    log.info(f"Setting {wfs}")
                     self.application.wfs = self.application.wfs_systems[wfs]
                     figkeys = []
                     ws_uris = []
@@ -132,7 +135,9 @@ class WFSsrv(tornado.web.Application):
                         log_uri=log_uri
                     )
             except Exception as e:
-                log.warning("Must specify valid wfs: %s. %s" % (wfs, e))
+                log.warning(f"Must specify valid wfs: {wfs}. ({e})")
+            finally:
+                self.finish()
 
     class ConnectHandler(tornado.web.RequestHandler):
         def get(self):
@@ -140,27 +145,29 @@ class WFSsrv(tornado.web.Application):
                 if not self.application.wfs.connected:
                     self.application.wfs.connect()
                     if self.application.wfs.connected:
-                        log.info("%s is connected." % self.application.wfs.name)
+                        log.info(f"{self.application.wfs.name} is connected.")
                     else:
-                        log.warning("Couldn't connect to %s. Offline?" % self.application.wfs.name)
+                        log.warning(f"Couldn't connect to {self.application.wfs.name}. Offline?")
                 else:
-                    log.info("%s already connected" % self.application.wfs.name)
+                    log.info(f"{self.application.wfs.name} already connected")
+            self.finish()
 
     class DisconnectHandler(tornado.web.RequestHandler):
         def get(self):
             if self.application.wfs is not None:
                 if self.application.wfs.connected:
                     self.application.wfs.disconnect()
-                    log.info("%s is disconnected." % self.application.wfs.name)
+                    log.info(f"{self.application.wfs.name} is disconnected.")
                 else:
-                    log.info("%s already disconnected" % self.application.wfs.name)
+                    log.info(f"{self.application.wfs.name} already disconnected")
+            self.finish()
 
     class AnalyzeHandler(tornado.web.RequestHandler):
         def get(self):
             self.application.close_figures()
             try:
                 filename = self.get_argument("fitsfile")
-                log.info("Analyzing %s..." % filename)
+                log.info(f"Analyzing {filename}...")
             except:
                 log.warning("no wfs or file specified.")
 
@@ -176,8 +183,8 @@ class WFSsrv(tornado.web.Application):
                 results = self.application.wfs.measure_slopes(filename, mode=mode, plot=True)
                 if results['slopes'] is not None:
                     if 'seeing' in results and self.application.wfs.connected:
-                        log.info("Seeing (zenith): %.2f\"" % results['seeing'].value)
-                        log.info("Seeing (raw): %.2f\"" % results['raw_seeing'].value)
+                        log.info(f"Seeing (zenith): {results['seeing'].round(2)}")
+                        log.info(f"Seeing (raw): {results['raw_seeing'].round(2)}")
                         self.application.update_seeing(results['seeing'])
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
                     zvec = zresults['zernike']
@@ -194,7 +201,7 @@ class WFSsrv(tornado.web.Application):
                     figures['totalforces'] = tel.plot_forces(totforces, totm1focus)
                     figures['totalforces'].set_label("Total M1 Actuator Forces")
                     psf, figures['psf'] = tel.psf(zv=zvec.copy())
-                    log.info("Residual RMS: %.2f nm" % zresults['residual_rms'].value)
+                    log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
                     zvec_file = os.path.join(self.application.datadir, filename + ".zernike")
                     zvec.save(filename=zvec_file)
                     self.application.wavefront_fit = zvec
@@ -205,12 +212,12 @@ class WFSsrv(tornado.web.Application):
                         self.application.has_pending_m1 = True
                         self.application.has_pending_coma = True
                         self.application.has_pending_focus = True
-                        log.info("%s: all proposed corrections valid." % filename)
+                        log.info(f"{filename}: all proposed corrections valid.")
                     elif zresults['residual_rms'] <= 1000 * u.nm:
                         self.application.has_pending_focus = True
-                        log.warning("%s: only focus corrections valid." % filename)
+                        log.warning(f"{filename}: only focus corrections valid.")
                     elif zresults['residual_rms'] > 1000 * u.nm:
-                        log.error("%s: wavefront fit too poor; no valid corrections" % filename)
+                        log.error(f"{filename}: wavefront fit too poor; no valid corrections")
 
                     self.application.has_pending_recenter = True
 
@@ -235,16 +242,17 @@ class WFSsrv(tornado.web.Application):
                         )
                     )
                 else:
-                    log.error("Wavefront measurement failed: %s" % filename)
+                    log.error(f"Wavefront measurement failed: {filename}")
                     figures = create_default_figures()
                     figures['slopes'] = results['figures']['slopes']
 
                 self.application.refresh_figures(figures=figures)
             else:
-                log.error("No such file: %s" % filename)
+                log.error(f"No such file: {filename}")
 
             self.application.wavefront_fit.denormalize()
             self.write(json.dumps(repr(self.application.wavefront_fit)))
+            self.finish()
 
     class M1CorrectHandler(tornado.web.RequestHandler):
         def get(self):
@@ -262,6 +270,7 @@ class WFSsrv(tornado.web.Application):
             else:
                 log.info("no M1 corrections sent")
                 self.write("No M1 corrections sent")
+            self.finish()
 
     class FocusCorrectHandler(tornado.web.RequestHandler):
         def get(self):
@@ -277,6 +286,7 @@ class WFSsrv(tornado.web.Application):
             else:
                 log.info("no Focus corrections sent")
                 self.write("No Focus corrections sent")
+            self.finish()
 
     class ComaCorrectHandler(tornado.web.RequestHandler):
         def get(self):
@@ -293,6 +303,7 @@ class WFSsrv(tornado.web.Application):
             else:
                 log.info("no Coma corrections sent")
                 self.write("No Coma corrections sent")
+            self.finish()
 
     class RecenterHandler(tornado.web.RequestHandler):
         def get(self):
@@ -309,30 +320,35 @@ class WFSsrv(tornado.web.Application):
             else:
                 log.info("no M2 recenter corrections sent")
                 self.write("No M2 recenter corrections sent")
+            self.finish()
 
     class RestartHandler(tornado.web.RequestHandler):
         def get(self):
             try:
                 wfs = self.get_argument('wfs')
                 self.application.restart_wfs(wfs)
-                log.info("restarting %s" % wfs)
+                log.info(f"restarting {wfs}")
             except:
                 log.info("no wfs specified")
+            finally:
+                self.finish()
 
     class DataDirHandler(tornado.web.RequestHandler):
         def get(self):
             try:
                 datadir = self.get_argument("datadir")
                 if os.path.isdir(datadir):
-                    log.info("setting datadir to %s" % datadir)
+                    log.info(f"setting datadir to {datadir}")
                     self.application.datadir = datadir
             except:
                 log.info("no datadir specified")
+            finally:
+                self.finish()
 
     class M1GainHandler(tornado.web.RequestHandler):
         def get(self):
             if self.application.wfs is not None:
-                self.write("%f" % self.application.wfs.m1_gain)
+                self.write(f"{self.application.wfs.m1_gain}")
             else:
                 self.write("no WFS selected.")
 
@@ -344,18 +360,19 @@ class WFSsrv(tornado.web.Application):
                     if gain >= 0.0 and gain <= 1.0:
                         self.application.wfs.m1_gain = gain
                     else:
-                        log.warning("Invalid M1 gain: %f" % gain)
-                    log.info("Setting M1 gain to %f" % gain)
+                        log.warning(f"Invalid M1 gain: {gain}")
+                    log.info(f"Setting M1 gain to {gain}")
             except Exception as e:
-                log.warning("No M1 gain specified: %s" % e)
-                log.info("Body: %s" % self.request.body)
+                log.warning(f"No M1 gain specified: {e}")
+                log.info(f"Body: {self.request.body}")
 
     class M2GainHandler(tornado.web.RequestHandler):
         def get(self):
             if self.application.wfs is not None:
-                self.write("%f" % self.application.wfs.m2_gain)
+                self.write(f"{self.application.wfs.m2_gain}")
             else:
                 self.write("no WFS selected.")
+            self.finish()
 
         def post(self):
             self.set_header("Content-Type", "text/plain")
@@ -365,22 +382,26 @@ class WFSsrv(tornado.web.Application):
                     if gain >= 0.0 and gain <= 1.0:
                         self.application.wfs.m2_gain = gain
                     else:
-                        log.warning("Invalid M2 gain: %f" % gain)
-                    log.info("Setting M2 gain to %f" % gain)
+                        log.warning(f"Invalid M2 gain: {gain}")
+                    log.info(f"Setting M2 gain to {gain}")
             except Exception as e:
-                log.warning("No M2 gain specified: %s" % e)
-                log.info("Body: %s" % self.request.body)
+                log.warning(f"No M2 gain specified: {e}")
+                log.info(f"Body: {self.request.body}")
+            finally:
+                self.finish()
 
     class PendingHandler(tornado.web.RequestHandler):
         def get(self):
-            self.write("M1: %s" % self.application.has_pending_m1)
-            self.write("M2: %s" % self.application.has_pending_m2)
-            self.write("recenter: %s" % self.application.has_pending_recenter)
+            self.write(f"M1: {self.application.has_pending_m1}")
+            self.write(f"M2: {self.application.has_pending_m2}")
+            self.write(f"recenter: {self.application.has_pending_recenter}")
+            self.finish()
 
         def post(self):
             self.application.has_pending_m1 = False
             self.application.has_pending_m2 = False
             self.application.has_pending_recenter = False
+            self.finish()
 
     class FilesHandler(tornado.web.RequestHandler):
         def get(self):
@@ -391,11 +412,13 @@ class WFSsrv(tornado.web.Application):
                 files.append(f.name)
             files.reverse()
             self.write(json.dumps(files))
+            self.finish()
 
     class ZernikeFitHandler(tornado.web.RequestHandler):
         def get(self):
             self.application.wavefront_fit.denormalize()
             self.write(json.dumps(repr(self.application.wavefront_fit)))
+            self.finish()
 
     class ClearHandler(tornado.web.RequestHandler):
         def get(self):
@@ -406,6 +429,7 @@ class WFSsrv(tornado.web.Application):
             log_str = "Cleared M1 forces and M2 WFS offsets...."
             log.info(log_str)
             self.write(log_str)
+            self.finish()
 
     class Download(tornado.web.RequestHandler):
         """
@@ -430,6 +454,7 @@ class WFSsrv(tornado.web.Application):
             buff = io.BytesIO()
             managers[fig].canvas.print_figure(buff, format=fmt)
             self.write(buff.getvalue())
+            self.finish()
 
     class LogStreamer(tornado.websocket.WebSocketHandler):
         """
@@ -447,7 +472,7 @@ class WFSsrv(tornado.web.Application):
             self.close()
 
         def on_close(self, *args, **kwargs):
-            logging.info("Trying to kill log streaming process...")
+            log.info("Trying to kill log streaming process...")
             self.proc.proc.terminate()
             self.proc.proc.wait()
 
@@ -562,7 +587,7 @@ class WFSsrv(tornado.web.Application):
             sock.close()
             log.info(cmd)
         except Exception as e:
-            log.warning("Error connecting to hacksaw... : %s" % e)
+            log.warning(f'Error connecting to hacksaw... : {e}')
 
     def __init__(self):
         if 'WFSROOT' in os.environ:
