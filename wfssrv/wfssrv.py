@@ -4,15 +4,16 @@ MMT WFS Server
 
 import io
 import os
-import socket
-import glob
 import json
 import pathlib
+import urllib3
+
+import numpy as np
+
+import astropy.units as u
 
 import logging
 import logging.handlers
-logger = logging.getLogger("")
-logger.setLevel(logging.INFO)
 
 try:
     import tornado
@@ -24,24 +25,19 @@ import tornado.ioloop
 import tornado.websocket
 from tornado.process import Subprocess
 from tornado.log import enable_pretty_logging
-enable_pretty_logging()
 
 import matplotlib
-matplotlib.use('webagg')
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_webagg_core import (FigureManagerWebAgg, FigureCanvasWebAggCore, new_figure_manager_given_figure)
-from matplotlib.figure import Figure
-
-import numpy as np
-
-import astropy.units as u
+from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new_figure_manager_given_figure)
 
 from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
+matplotlib.use('webagg')
 log = logging.getLogger('tornado.application')
 log.setLevel(logging.INFO)
+
 
 def create_default_figures():
     zv = ZernikeVector(Z04=1)
@@ -94,7 +90,6 @@ class WFSsrv(tornado.web.Application):
         def get(self):
             try:
                 wfs = self.get_argument("wfs")
-                render = self.get_argument("render", default=False)
                 if wfs in self.application.wfs_keys:
                     log.info(f"Setting {wfs}")
                     self.application.wfs = self.application.wfs_systems[wfs]
@@ -182,15 +177,16 @@ class WFSsrv(tornado.web.Application):
 
                 results = self.application.wfs.measure_slopes(filename, mode=mode, plot=True)
                 if results['slopes'] is not None:
-                    if 'seeing' in results and self.application.wfs.connected:
+                    if 'seeing' in results:
                         log.info(f"Seeing (zenith): {results['seeing'].round(2)}")
                         log.info(f"Seeing (raw): {results['raw_seeing'].round(2)}")
-                        self.application.update_seeing(results['seeing'])
+                        if self.application.wfs.connected:
+                            self.application.update_seeing(results)
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
                     zvec = zresults['zernike']
                     tel = self.application.wfs.telescope
                     m1gain = self.application.wfs.m1_gain
-                    m2gain = self.application.wfs.m2_gain
+
                     # this is the total if we try to correct everything as fit
                     totforces, totm1focus = tel.calculate_primary_corrections(zvec, gain=m1gain)
                     figures = {}
@@ -577,17 +573,35 @@ class WFSsrv(tornado.web.Application):
                 self.managers[k]._send_event("refresh")
                 self.managers[k].canvas.draw()
 
-    def update_seeing(self, seeing):
+    def set_redis(self, key, value, http=urllib3.PoolManager()):
+        """
+        Set redis 'key' to 'value' via the MMTO web API
+        """
+        url = self.redis_host + "/set"
+        r = http.request(
+            'POST',
+            url,
+            fields={
+                'key': key,
+                'value': f'{value}'.encode('utf-8')
+            },
+            headers={
+                'Authorization': 'Basic bW10cmVzdDptbXRwYXNzd29yZA==',
+                'Cache-Control': 'no-cache,max-age=0',
+                'Pragma': 'no-cache'
+            }
+        )
+        return r
+
+    def update_seeing(self, results):
         try:
-            seeing_server = ("hacksaw.mmto.org", 7666)
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(seeing_server)
-            cmd = "set wfs_seeing {0:0.2f}".format(seeing)
-            sock.sendall(cmd.encode("utf8"))
-            sock.close()
-            log.info(cmd)
+            wfs_seeing = results['seeing'].round(2).value
+            wfs_raw_seeing = results['raw_seeing'].round(2).value
+            self.set_redis('wfs_seeing', wfs_seeing)
+            self.set_redis('wfs_raw_seeing', wfs_raw_seeing)
+            log.info(f"Set redis values wfs_seeing={wfs_seeing} and wfs_raw_seeing={wfs_raw_seeing}")
         except Exception as e:
-            log.warning(f'Error connecting to hacksaw... : {e}')
+            log.warning(f'Error connecting to MMTO API server... : {e}')
 
     def __init__(self):
         if 'WFSROOT' in os.environ:
@@ -600,10 +614,13 @@ class WFSsrv(tornado.web.Application):
             formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler = logging.handlers.WatchedFileHandler(self.logfile)
             handler.setFormatter(formatter)
-            logger.addHandler(handler)
+            log.addHandler(handler)
             enable_pretty_logging()
         else:
             self.logfile = "/dev/null"
+
+        self.redis_host = "https://api.mmto.arizona.edu/APIv1"
+        self.http = urllib3.PoolManager()
 
         self.wfs = None
         self.wfs_systems = {}
