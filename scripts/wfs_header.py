@@ -42,7 +42,7 @@ if __name__ == "__main__":
             inst = "f9"
 
     # check for F/5 (hecto)
-    if inst is None and 'SEC' in header:
+    if inst is None and 'SEC' in header:  # mmirs has SEC in header as well which is why we check if inst isn't set
         if 'F5' in header['SEC']:
             inst = "f5"
 
