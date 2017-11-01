@@ -52,7 +52,7 @@ proc receive_file {channel_name client_address client_port} {
     close $fp
 
     # update the image headers with TCS information and grab the inst/wfs string that the script outputs
-    set command "$header_script $newfile"
+    set command "$::header_script $newfile"
     set cid [open |$command r]
     set inst_name [read $cid]
     close $cid
