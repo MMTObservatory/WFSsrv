@@ -61,6 +61,8 @@ proc receive_file {channel_name client_address client_port} {
     set pipefile [file join $::datadir saowfs-pipe.log]
     set pipeId [open $pipefile "w"]
 
+    puts "Got instrument $inst_name"
+
     if [string equal $inst_name mmirs] {
         exec /usr/bin/mv $newfile $mmirs_file
         puts $pipeId $mmirs_file
