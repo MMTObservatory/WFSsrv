@@ -63,13 +63,13 @@ proc receive_file {channel_name client_address client_port} {
 
     puts "Got instrument $inst_name"
 
-    if [string equal $inst_name mmirs] {
+    if [string equal $inst_name "mmirs\n"] {
         exec /usr/bin/mv $newfile $mmirs_file
         puts $pipeId $mmirs_file
         incr ::mmirs_count
     }
 
-    if [string equal $inst_name binospec] {
+    if [string equal $inst_name "binospec\n"] {
         exec /usr/bin/mv $newfile $bino_file
         puts $pipeId $bino_file
         incr ::bino_count
