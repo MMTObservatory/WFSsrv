@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 MMT WFS Server
 """
@@ -610,7 +612,7 @@ class WFSsrv(tornado.web.Application):
             self.datadir = pathlib.Path("/mmt/shwfs/datadir")
 
         if os.path.isdir(self.datadir):
-            self.logfile = self.datadir / "wfs.log")
+            self.logfile = self.datadir / "wfs.log"
             formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler = logging.handlers.WatchedFileHandler(self.logfile)
             handler.setFormatter(formatter)
