@@ -29,6 +29,7 @@ from tornado.process import Subprocess
 from tornado.log import enable_pretty_logging
 
 import matplotlib
+matplotlib.use('webagg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new_figure_manager_given_figure)
 
@@ -36,7 +37,6 @@ from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
-matplotlib.use('webagg')
 log = logging.getLogger('tornado.application')
 log.setLevel(logging.INFO)
 
@@ -86,7 +86,6 @@ class WFSsrv(tornado.web.Application):
         """
         def get(self):
             self.render("home.html", current=self.application.wfs, wfslist=self.application.wfs_names)
-            self.finish()
 
     class SelectHandler(tornado.web.RequestHandler):
         def get(self):
@@ -124,7 +123,7 @@ class WFSsrv(tornado.web.Application):
                         ws_uris=ws_uris,
                         fig_ids=fig_ids,
                         figures=figkeys,
-                        datadir=self.application.datadir + "/",
+                        datadir=str(self.application.datadir) + "/",
                         modes=self.application.wfs.modes,
                         default_mode=self.application.wfs.default_mode,
                         m1_gain=self.application.wfs.m1_gain,
@@ -133,7 +132,6 @@ class WFSsrv(tornado.web.Application):
                     )
             except Exception as e:
                 log.warning(f"Must specify valid wfs: {wfs}. ({e})")
-            finally:
                 self.finish()
 
     class ConnectHandler(tornado.web.RequestHandler):
@@ -183,6 +181,7 @@ class WFSsrv(tornado.web.Application):
                         log.info(f"Seeing (zenith): {results['seeing'].round(2)}")
                         log.info(f"Seeing (raw): {results['raw_seeing'].round(2)}")
                         if self.application.wfs.connected:
+                            log.info("Publishing seeing values to redis.")
                             self.application.update_seeing(results)
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
                     zvec = zresults['zernike']
