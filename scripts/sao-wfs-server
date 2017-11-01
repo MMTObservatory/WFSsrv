@@ -1,0 +1,82 @@
+#!/usr/bin/env tclsh
+
+package require dns
+
+# set up where the files go
+if {[info exists env(WFSROOT)]} {
+    set datadir [file join $env(WFSROOT) datadir]
+} else {
+    set datadir /mmt/shwfs/datadir
+}
+
+# set up where to find the script for updating the image headers
+if {[info exists env(CONDA_PREFIX)]} {
+    set header_script [file join $env(CONDA_PREFIX) bin wfs_header.py]
+} else {
+    set header_script /mmt/conda/bin/wfs_header.py
+}
+
+# nominally the port should be 9876, but query for it via DNS to be sure and in case it gets moved
+set tok [dns::resolve _mmirs-wfs._tcp.mmto.arizona.edu -type SRV]
+set res [dns::result $tok]
+set service_port [lindex [lindex [lindex $res 0] 11] 5]
+
+set mmirs_count 1
+set bino_count 1
+
+proc receive_file {channel_name client_address client_port} {
+    fconfigure $channel_name -translation binary
+    # get SAO's filename (which we don't use) and the size of the file (which we do)
+    gets $channel_name line
+    foreach {saoname size} $line {}
+
+    # If the newdata directory doesn't exist, then make it!
+    set newdatadir [file join $::datadir newdata]
+    if { ![file exists $newdatadir]} {
+        exec /usr/bin/mkdir $newdatadir
+    }
+
+    # we write new images into the newdata subdirectory, update the headers there, and then move them up to
+    # where the wfs analysis server looks for new files.
+    set newfile [file join $newdatadir newfile.fits]
+    set mmirs_file [file join $::datadir mmirs_wfs_[format %04d $::mmirs_count].fits]
+    set bino_file [file join $::datadir bino_wfs_[format %04d $::bino_count].fits]
+
+    # copy the binary data from network socket into the new file
+    set fp [open $newfile w]
+    fconfigure $fp -translation binary
+
+    fcopy $channel_name $fp -size $size
+
+    close $channel_name
+    close $fp
+
+    # update the image headers with TCS information and grab the inst/wfs string that the script outputs
+    set command "$header_script $newfile"
+    set cid [open |$command r]
+    set inst_name [read $cid]
+    close $cid
+
+    # unclear if we still need this pipe file, but we'll keep it around for now in case we find a new use for it
+    set pipefile [file join $::datadir saowfs-pipe.log]
+    set pipeId [open $pipefile "w"]
+
+    if [string equal $inst_name mmirs] {
+        exec /usr/bin/mv $newfile $mmirs_file
+        puts $pipeId $mmirs_file
+        incr ::mmirs_count
+    }
+
+    if [string equal $inst_name binospec] {
+        exec /usr/bin/mv $newfile $bino_file
+        puts $pipeId $bino_file
+        incr ::bino_count
+    }
+
+    puts $pipeId [clock seconds]
+    close $pipeId
+
+}
+
+socket -server receive_file $service_port
+vwait forever
