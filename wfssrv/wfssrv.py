@@ -37,7 +37,7 @@ from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
-log = logging.getLogger('')
+log = logging.getLogger('WFSsrv')
 log.setLevel(logging.INFO)
 
 
