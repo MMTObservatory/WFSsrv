@@ -616,7 +616,9 @@ class WFSsrv(tornado.web.Application):
 
         if os.path.isdir(self.datadir):
             self.logfile = self.datadir / "wfs.log"
+            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler = logging.handlers.WatchedFileHandler(self.logfile)
+            handler.setFormatter(formatter)
             glog.addHandler(handler)
             enable_pretty_logging()
         else:
