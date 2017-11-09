@@ -485,7 +485,7 @@ class WFSsrv(tornado.web.Application):
                 color = "text-danger"
             else:
                 color = "text-success"
-            if "tornado.access" not in html:
+            if "tornado.access" not in html and "poppy" not in html:
                 html = "<samp><span class=%s>%s</span></samp>" % (color, html)
                 html += "<script>$(\"#log\").scrollTop($(\"#log\")[0].scrollHeight);</script>"
                 self.write_message(html.encode())
@@ -616,9 +616,7 @@ class WFSsrv(tornado.web.Application):
 
         if os.path.isdir(self.datadir):
             self.logfile = self.datadir / "wfs.log"
-            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler = logging.handlers.WatchedFileHandler(self.logfile)
-            handler.setFormatter(formatter)
             glog.addHandler(handler)
             enable_pretty_logging()
         else:
