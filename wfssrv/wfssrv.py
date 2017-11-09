@@ -186,6 +186,8 @@ class WFSsrv(tornado.web.Application):
                             self.application.update_seeing(results)
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
                     zvec = zresults['zernike']
+                    zvec_raw = zresults['rot_zernike']
+                    zvec_ref = zresults['ref_zernike']
                     tel = self.application.wfs.telescope
                     m1gain = self.application.wfs.m1_gain
 
@@ -201,7 +203,11 @@ class WFSsrv(tornado.web.Application):
                     psf, figures['psf'] = tel.psf(zv=zvec.copy())
                     log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
                     zvec_file = self.application.datadir / (filename + ".zernike")
+                    zvec_raw_file = self.application.datadir / (filename + ".raw.zernike")
+                    zvec_ref_file = self.application.datadir / (filename + ".ref.zernike")
                     zvec.save(filename=zvec_file)
+                    zvec_raw.save(filename=zvec_raw_file)
+                    zvec_ref.save(filename=zvec_ref_file)
                     self.application.wavefront_fit = zvec
 
                     # check the RMS of the wavefront fit and only apply corrections if the fit is good enough.
