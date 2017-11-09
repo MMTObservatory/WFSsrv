@@ -37,6 +37,7 @@ from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
+glog = logging.getLogger('')
 log = logging.getLogger('WFSsrv')
 log.setLevel(logging.INFO)
 
@@ -253,25 +254,28 @@ class WFSsrv(tornado.web.Application):
 
     class M1CorrectHandler(tornado.web.RequestHandler):
         def get(self):
-            log.info("M1 corrections")
+            log.info("M1 corrections...")
             if self.application.has_pending_m1 and self.application.wfs.connected:
                 self.application.wfs.telescope.correct_primary(
                     self.application.pending_forces,
                     self.application.pending_m1focus,
                     filename=self.application.pending_forcefile
                 )
-                log.info(self.application.pending_forces)
+                max_f = self.application.pending_forces['force'].max()
+                min_f = self.application.pending_forces['force'].min()
+                log.info(f"Maximum force {round(max_f, 2)} N")
+                log.info(f"Minimum force {round(min_f, 2)} N")
                 log.info("Adjusting M1 focus by {0:0.1f}".format(self.application.pending_m1focus))
                 self.application.has_pending_m1 = False
                 self.write("Sending forces to cell and {0:0.1f} focus to secondary...".format(self.application.pending_m1focus))
             else:
-                log.info("no M1 corrections sent")
+                log.info("No M1 corrections sent")
                 self.write("No M1 corrections sent")
             self.finish()
 
     class FocusCorrectHandler(tornado.web.RequestHandler):
         def get(self):
-            log.info("M2 focus corrections")
+            log.info("M2 focus corrections...")
             if self.application.has_pending_focus and self.application.wfs.connected:
                 self.application.wfs.secondary.focus(self.application.pending_focus)
                 self.application.has_pending_focus = False
@@ -281,13 +285,13 @@ class WFSsrv(tornado.web.Application):
                 log.info(log_str)
                 self.write(log_str)
             else:
-                log.info("no Focus corrections sent")
-                self.write("No Focus corrections sent")
+                log.info("No focus corrections sent")
+                self.write("No focus corrections sent")
             self.finish()
 
     class ComaCorrectHandler(tornado.web.RequestHandler):
         def get(self):
-            log.info("M2 coma corrections")
+            log.info("M2 coma corrections...")
             if self.application.has_pending_coma and self.application.wfs.connected:
                 self.application.wfs.secondary.correct_coma(self.application.pending_cc_x, self.application.pending_cc_y)
                 self.application.has_pending_coma = False
@@ -298,8 +302,8 @@ class WFSsrv(tornado.web.Application):
                 log.info(log_str)
                 self.write(log_str)
             else:
-                log.info("no Coma corrections sent")
-                self.write("No Coma corrections sent")
+                log.info("No coma corrections sent")
+                self.write("No coma corrections sent")
             self.finish()
 
     class RecenterHandler(tornado.web.RequestHandler):
@@ -315,7 +319,7 @@ class WFSsrv(tornado.web.Application):
                 log.info(log_str)
                 self.write(log_str)
             else:
-                log.info("no M2 recenter corrections sent")
+                log.info("No M2 recenter corrections sent")
                 self.write("No M2 recenter corrections sent")
             self.finish()
 
@@ -615,7 +619,7 @@ class WFSsrv(tornado.web.Application):
             formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
             handler = logging.handlers.WatchedFileHandler(self.logfile)
             handler.setFormatter(formatter)
-            log.addHandler(handler)
+            glog.addHandler(handler)
             enable_pretty_logging()
         else:
             self.logfile = pathlib.Path("/dev/null")
