@@ -16,9 +16,8 @@ if __name__ == "__main__":
         header = newhdu.header
     elif isinstance(newhdu, list):
         header = None
-        for h in newhdu:
-            if isinstance(h, fits.hdu.image.PrimaryHDU):
-                header = h.header
+        h = newhdu.pop()
+        header = h.header
         if header is None:
             raise ValueError("No PrimaryHDU found in HDU list.")
     else:
