@@ -34,7 +34,7 @@ if __name__ == "__main__":
     if 'ORIGIN' in header:
         if 'Binospec' in header['ORIGIN']:
             inst = "binospec"
-            newhdu[1].data = np.flipud(newhdu[1].data)
+            # newhdu[1].data = np.flipud(newhdu[1].data)
 
     # check for F/9
     if 'OBSERVER' in header:
