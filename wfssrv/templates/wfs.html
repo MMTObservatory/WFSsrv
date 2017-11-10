@@ -328,12 +328,14 @@
         });
         function doNextFile() {
             $.getJSON("files", {format: "json"}).done(function(data) {
-                if (running == false) {
-                    if (data.length > 0) {
-                        if (data[0] != latest_file) {
-                            latest_file = data[0];
-                            $('#datafile').val(latest_file);
-                            $('#analyze').trigger('click');
+                if (continuous == true) {
+                    if (running == false) {
+                        if (data.length > 0) {
+                            if (data[0] != latest_file) {
+                                latest_file = data[0];
+                                $('#datafile').val(latest_file);
+                                $('#analyze').trigger('click');
+                            };
                         };
                     };
                 };
