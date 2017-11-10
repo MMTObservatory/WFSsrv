@@ -327,8 +327,8 @@
             });
         });
         function doNextFile() {
-            $.getJSON("files", {format: "json"}).done(function(data) {
-                if (continuous == true) {
+            if (continuous == true) {
+                $.getJSON("files", {format: "json"}).done(function(data) {
                     if (running == false) {
                         if (data.length > 0) {
                             if (data[0] != latest_file) {
@@ -338,30 +338,25 @@
                             };
                         };
                     };
-                };
-                timer = setTimeout(doNextFile, 1000);
-            });
+                    timer = setTimeout(doNextFile, 1000);
+                });
+            } else {
+                timer = undefined;
+            };
         };
         $('#continuous').on('click', function() {
             var turbo = $('#turbo').prop("checked");
             latest_file = $('#datafile').val();
             if (continuous == false) {
-                $.getJSON("files", {format: "json"}).done(function(data) {
-                    if (data.length > 0) {
-                        if (data[0] != latest_file) {
-                            latest_file = data[0];
-                        };
-                    };
-                });
-                timer = setTimeout(doNextFile, 1000);
+                continuous = true;
                 $(this).text("Stop Continous WFS");
                 disable();
-                continuous = true;
                 if (turbo != true) {
                     $('#m1gain').val(0.25);
                     $('#m2gain').val(0.25);
                     $('#setgains').trigger('click');
                 };
+                timer = setTimeout(doNextFile, 1000);
             } else {
                 $(this).text("Start Continuous WFS");
                 enable();
