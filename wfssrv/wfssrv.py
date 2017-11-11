@@ -193,7 +193,7 @@ class WFSsrv(tornado.web.Application):
                     m1gain = self.application.wfs.m1_gain
 
                     # this is the total if we try to correct everything as fit
-                    totforces, totm1focus = tel.calculate_primary_corrections(zvec, gain=m1gain)
+                    totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec, gain=m1gain)
                     figures = {}
                     figures['slopes'] = results['figures']['slopes']
                     figures['residuals'] = zresults['resid_plot']
