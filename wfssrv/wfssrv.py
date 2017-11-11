@@ -171,7 +171,7 @@ class WFSsrv(tornado.web.Application):
             connect = self.get_argument("connect", default=True)
             spher = self.get_argument("spher", default=False)
 
-            if spher:
+            if spher == "true":
                 spher_mask = ['Z11', 'Z22', 'Z37']
                 log.info(f"Ignoring the spherical terms {spher_mask}...")
             else:
