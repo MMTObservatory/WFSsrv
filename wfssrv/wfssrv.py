@@ -231,7 +231,7 @@ class WFSsrv(tornado.web.Application):
                     self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
                     self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
                     self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
-                        self.application.wfs.calculate_primary(zvec, threshold=m1gain*0.25*zresults['residual_rms'])
+                        self.application.wfs.calculate_primary(zvec, threshold=0.2*zresults['residual_rms'])
                     self.application.pending_forcefile = self.application.datadir / (filename + ".forces")
                     zvec_masked_file = self.application.datadir / (filename + ".masked.zernike")
                     zv_masked.save(filename=zvec_masked_file)
