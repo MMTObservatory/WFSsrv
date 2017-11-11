@@ -592,13 +592,14 @@ class WFSsrv(tornado.web.Application):
         """
         Set redis 'key' to 'value' via the MMTO web API
         """
-        url = self.redis_host + "/set"
+        url = self.redis_host + "/setpub"
         r = http.request(
             'POST',
             url,
             fields={
                 'key': key,
-                'value': f'{value}'.encode('utf-8')
+                'value': f'{value}'.encode('utf-8'),
+                'expires': 3600
             },
             headers={
                 'Authorization': 'Basic bW10cmVzdDptbXRwYXNzd29yZA==',
