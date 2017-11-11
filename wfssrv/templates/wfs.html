@@ -139,6 +139,8 @@
                                 {% end %}
                                 <label for="connect">Enable Corrections:</label>
                                 <input type="checkbox" id="connect" checked>
+                                <label for="spher">Ignore Spherical:</label>
+                                <input type="checkbox" id="spher">
                             </div>
                         </form>
                     </div>
@@ -295,10 +297,11 @@
             var dir = $('#datadir').html();
             var mode = $('#mode').val();
             var connect = document.getElementById('connect').checked;
+            var spher - document.getElementById('spher').checked;
             if (typeof mode === "undefined") {
-                var url = "analyze?connect=" + connect + "&fitsfile=" + dir + file;
+                var url = "analyze?connect=" + connect + "&fitsfile=" + dir + file + "&spher=" + spher;
             } else {
-                var url = "analyze?connect=" + connect + "&mode=" + mode + "&fitsfile=" + dir + file;
+                var url = "analyze?connect=" + connect + "&mode=" + mode + "&fitsfile=" + dir + file + "&spher=" + spher;
             };
             $.getJSON(url, {format: "json"}).done(function(data, status) {
                 if (continuous == false) {

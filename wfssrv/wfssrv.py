@@ -169,6 +169,13 @@ class WFSsrv(tornado.web.Application):
 
             mode = self.get_argument("mode", default=None)
             connect = self.get_argument("connect", default=True)
+            spher = self.get_argument("spher", default=False)
+
+            if spher:
+                spher_mask = ['Z11', 'Z22', 'Z37']
+                log.info(f"Ignoring the spherical terms {spher_mask}...")
+            else:
+                spher_mask = []
 
             if os.path.isfile(filename) and not self.application.busy:
                 self.application.busy = True
@@ -231,7 +238,7 @@ class WFSsrv(tornado.web.Application):
                     self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
                     self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
                     self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
-                        self.application.wfs.calculate_primary(zvec, threshold=m1gain*0.5*zresults['residual_rms'])
+                        self.application.wfs.calculate_primary(zvec, threshold=m1gain*0.5*zresults['residual_rms'], mask=spher_mask)
                     self.application.pending_forcefile = self.application.datadir / (filename + ".forces")
                     zvec_masked_file = self.application.datadir / (filename + ".masked.zernike")
                     zv_masked.save(filename=zvec_masked_file)
