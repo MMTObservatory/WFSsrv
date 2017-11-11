@@ -290,6 +290,7 @@
         $('#analyze').on('click', function() {
             $(this).text("Running...");
             running = true;
+            disable();
             var file = $('#datafile').val();
             var dir = $('#datadir').html();
             var mode = $('#mode').val();
@@ -299,7 +300,6 @@
             } else {
                 var url = "analyze?connect=" + connect + "&mode=" + mode + "&fitsfile=" + dir + file;
             };
-            disable();
             $.getJSON(url, {format: "json"}).done(function(data, status) {
                 if (continuous == false) {
                     enable();
