@@ -170,7 +170,8 @@ class WFSsrv(tornado.web.Application):
             mode = self.get_argument("mode", default=None)
             connect = self.get_argument("connect", default=True)
 
-            if os.path.isfile(filename):
+            if os.path.isfile(filename) and not self.application.busy:
+                self.application.busy = True
                 if connect == "true":
                     self.application.wfs.connect()
                 else:
@@ -258,6 +259,7 @@ class WFSsrv(tornado.web.Application):
 
             self.application.wavefront_fit.denormalize()
             self.write(json.dumps(repr(self.application.wavefront_fit)))
+            self.application.busy = False
             self.finish()
 
     class M1CorrectHandler(tornado.web.RequestHandler):
@@ -643,6 +645,7 @@ class WFSsrv(tornado.web.Application):
             self.wfs_systems[w] = WFSFactory(wfs=w)
             self.wfs_names[w] = self.wfs_systems[w].name
 
+        self.busy = False
         self.has_pending_m1 = False
         self.has_pending_coma = False
         self.has_pending_focus = False
