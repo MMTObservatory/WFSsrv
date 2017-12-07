@@ -66,6 +66,9 @@ def create_default_figures():
     # stub for zernike bar chart
     figures['barchart'] = zv.bar_chart()
 
+    # stub for zernike fringe bar chart
+    figures['fringebarchart'] = zv.fringe_bar_chart()
+
     # stubs for mirror forces
     figures['forces'] = tel.plot_forces(forces)
     figures['forces'].set_label("Requested M1 Actuator Forces")
@@ -205,7 +208,11 @@ class WFSsrv(tornado.web.Application):
                     figures['slopes'] = results['figures']['slopes']
                     figures['residuals'] = zresults['resid_plot']
                     figures['wavefront'] = zvec.plot_map()
-                    figures['barchart'] = zvec.bar_chart(residual=zresults['residual_rms'])
+                    rms_asec = zresults['zernike_rms'].value / self.application.wfs.tiltfactor * u.arcsec
+                    figures['barchart'] = zvec.bar_chart(
+                        residual=zresults['residual_rms'],
+                        title=f"Total Wavefront RMS: {zresults['zernike_rms'].round(1)} ({rms_asec.round(2)})"
+                    )
                     figures['totalforces'] = tel.plot_forces(totforces, totm1focus)
                     figures['totalforces'].set_label("Total M1 Actuator Forces")
                     psf, figures['psf'] = tel.psf(zv=zvec.copy())
@@ -249,7 +256,8 @@ class WFSsrv(tornado.web.Application):
                         limit=limit
                     )
                     figures['forces'].set_label("Requested M1 Actuator Forces")
-                    figures['barchart'].axes[0].set_title("Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
+                    figures['fringebarchart'] = zvec.fringe_bar_chart(
+                        title="Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
                             self.application.pending_focus,
                             self.application.pending_cc_x,
                             self.application.pending_cc_y,

@@ -107,7 +107,7 @@
         <div class="container-fluid">
             <p>
                 <div class="row">
-                    <div class='col-lg-6'>
+                    <div class='col-lg-9'>
                         <label for="datafile"><b>FITS file to analyze:</b></label>
                         <div class="input-group">
                             <span class="input-group-addon" id="datadir">{{ datadir }}</span>
@@ -392,6 +392,7 @@
                 <ul class="nav nav-tabs" role="tablist">
                     <li role="presentation" class="active"><a href="#slopes" aria-controls="slopes" role="tab" data-toggle="tab">Slopes/Residuals</a></li>
                     <li role="presentation"><a href="#zernfit" aria-controls="zernfit" role="tab" data-toggle="tab" onClick="getZerns()">Wavefront Fit</a></li>
+                    <li role="presentation"><a href="#fringezerns" aria-controls="fringezerns" role="tab" data-toggle="tab">Zernike Mode Amplitude</a></li>
                     <li role="presentation"><a href="#zerns" aria-controls="zerns" role="tab" data-toggle="tab">RMS Wavefront Errors</a></li>
                     <li role="presentation"><a href="#wavefront" aria-controls="wavefront" role="tab" data-toggle="tab">Wavefront Map/PSF</a></li>
                     <li role="presentation"><a href="#cell" aria-controls="cell" role="tab" data-toggle="tab">Cell Forces</a></li>
@@ -416,6 +417,17 @@
                         <pre>
                             <div id="zernikes"></div>
                         </pre>
+                    </div>
+                    <div role="tabpanel" class="tab-pane" id="fringezerns">
+                        <table class="table table-striped">
+                            <tbody>
+                                <tr>
+                                    <td colspan="2">
+                                        <div id="fringebarchart"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                     <div role="tabpanel" class="tab-pane" id="zerns">
                         <table class="table table-striped">
