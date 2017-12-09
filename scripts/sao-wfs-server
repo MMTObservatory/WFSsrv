@@ -40,6 +40,7 @@ proc receive_file {channel_name client_address client_port} {
     # where the wfs analysis server looks for new files.
     set newfile [file join $newdatadir newfile.fits]
     set mmirs_file [file join $::datadir mmirs_wfs_[format %04d $::mmirs_count].fits]
+    set bino_file [file join $::datadir $saoname]
 
     # copy the binary data from network socket into the new file
     set fp [open $newfile w]
@@ -69,8 +70,8 @@ proc receive_file {channel_name client_address client_port} {
     }
 
     if [string equal $inst_name "binospec\n"] {
-        exec /usr/bin/mv $newfile $saoname
-        puts $pipeId $saoname
+        exec /usr/bin/mv $newfile $bino_file
+        puts $pipeId $bino_file
         incr ::bino_count
     }
 
