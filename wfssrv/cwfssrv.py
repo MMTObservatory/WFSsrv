@@ -214,6 +214,8 @@ class WFSsrv(tornado.web.Application):
                     focusvals = np.array(focusvals)
                     I1 = Image(arrays[np.argmin(focusvals)], [0, 0], Image.INTRA)
                     I2 = Image(arrays[np.argmax(focusvals)], [0, 0], Image.EXTRA)
+                    intra_file = pathlib.Path(images[np.argmin(focusvals)]).name
+                    extra_file = pathlib.Path(images[np.argmax(focusvals)]).name
                     focoff = focusvals.max() - focusvals.mean()
                     log.info(f"Using an M2 focus offset of +/- {focoff} um.")
                     log.info(f"Intra-focal image: {images[np.argmin(focusvals)]}")
@@ -221,6 +223,8 @@ class WFSsrv(tornado.web.Application):
                 else:
                     I1 = Image(readFile(images[0]), [0, 0], Image.INTRA)
                     I2 = Image(readFile(images[1]), [0, 0], Image.EXTRA)
+                    intra_file = pathlib.Path(images[0]).name
+                    extra_file = pathlib.Path(images[1]).name
                     log.warning(f"WARNING: No focus information in image headers. Assuming M2 focus offset of +/- {focoff} um.")
                     log.warning(f"WARNING: Assuming intra-focal image is {image[0]}")
                     log.warning(f"WARNING: Assuming extra-focal image is {image[1]}")
@@ -279,12 +283,14 @@ class WFSsrv(tornado.web.Application):
                 figures['intra'], ax['intra'] = plt.subplots()
                 figures['intra'].set_label("Intra-focal Image")
                 im1 = ax['intra'].imshow(I1.image, cmap='Greys', origin='lower', interpolation='None')
+                ax['intra'].set_title(intra_file)
                 cbar1 = figures['intra'].colorbar(im1)
 
                 # show extra-focal image
                 figures['extra'], ax['extra'] = plt.subplots()
                 figures['extra'].set_label("Extra-focal Image")
                 im2 = ax['extra'].imshow(I2.image, cmap='Greys', origin='lower', interpolation='None')
+                ax['extra'].set_title(extra_file)
                 cbar2 = figures['extra'].colorbar(im2)
 
                 # show wavefront map
