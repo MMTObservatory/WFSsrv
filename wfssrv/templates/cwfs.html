@@ -83,23 +83,18 @@
             );
         </script>
 
-        <title>{{ wfsname }}</title>
+        <title>Binospec Curvature Wavefront Sensing</title>
     </head>
 
     <body>
         <div class="page-header" align="center">
-            <h1>{{ wfsname }}</h1>
+            <h1>Binospec Curvature Wavefront Sensing</h1>
         </div>
 
         <nav class="navbar navbar-default">
             <div class="container-fluid">
                 <div class="navbar-header">
                     <a class="navbar-brand" href="/">Home</a>
-                    {% if "F/9" in wfsname %}
-                    <p class="navbar-text navbar-right">
-                        <a href="http://hacksaw.mmto.arizona.edu:8787" class="navbar-link" target="_blank">Camera Interface</a>
-                    </p>
-                    {% end %}
                 </div>
             </div>
         </nav>
@@ -108,10 +103,11 @@
             <p>
                 <div class="row">
                     <div class='col-lg-9'>
-                        <label for="datafile"><b>FITS file to analyze:</b></label>
+                        <label for="datafile"><b>FITS files to analyze:</b></label>
                         <div class="input-group">
                             <span class="input-group-addon" id="datadir">{{ datadir }}</span>
-                            <input type="text" class="form-control" id="datafile" aria-describedby="datadir">
+                            <input type="text" class="form-control" id="datafile1" aria-describedby="datadir">
+                            <input type="text" class="form-control" id="datafile2" aria-describedby="datadir">
                             <span class="input-group-btn">
                                 <button class="btn btn-primary" id='analyze' type="button">Analyze</button>
                                 <button class="btn btn-primary" id='latest' type="button">Analyse Latest</button>
@@ -125,18 +121,6 @@
                     <div class='col-lg-6'>
                         <form class="form-inline">
                             <div class="form-group">
-                                {% if wfsname != "MMIRS WFS" %}
-                                    <label for="mode">Mode:</label>
-                                    <select class="form-control" id="mode">
-                                        {% for m in modes %}
-                                            {% if m == default_mode %}
-                                                <option selected value={{ m }}>{{ modes[m]['label'] }}</option>
-                                            {% else %}
-                                                <option value={{ m }}>{{ modes[m]['label'] }}</option>
-                                            {% end %}
-                                        {% end %}
-                                    </select>
-                                {% end %}
                                 <label for="connect">Enable Corrections:</label>
                                 <input type="checkbox" id="connect" checked>
                                 <label for="spher">Ignore Spherical:</label>
@@ -173,28 +157,8 @@
                         <div class='col-lg-2'>
                             <button type="button" id='m1correct' disabled="disabled" class="btn btn-primary">Correct M1</button>
                         </div>
-                        <div class='col-lg-2'>
-                            <button type="button" id='recenter' disabled="disabled" class="btn btn-primary">Recenter</button>
-                        </div>
                         <div class='col-lg-3'>
                             <button type="button" id='clear' class="btn btn-danger">Clear Corrections</button>
-                        </div>
-                    </div>
-                </div>
-            </p>
-            <p>
-                <div class="row">
-                    <div class='col-lg-6 align-self-center'>
-                        <div class='col-lg-4'>
-                            <button type="button" id='continuous' class="btn btn-primary">Start Continuous WFS</button>
-                        </div>
-                        <div class='col-lg-8'>
-                            <form class="form-inline">
-                                <div class="form-group">
-                                    <label class="form-check-label" for="turbo">Turbo Mode:</label>
-                                    <input type="checkbox" id="turbo">
-                                </div>
-                            </form>
                         </div>
                     </div>
                 </div>
@@ -203,9 +167,9 @@
 
         <script>
         var running = false;
-        var continuous = false;
         var orig_m1g = 0.5;
         var orig_m2g = 1.0;
+        var continous = false;
         var timer = undefined;
         var ready = false;
         var latest_file = "";
@@ -220,14 +184,25 @@
                 );
             };
 
-            var selectItem = function(event, ui) {
-                $("#datafile").val(ui.item.value);
+            var selectItem1 = function(event, ui) {
+                $("#datafile1").val(ui.item.value);
                 return false;
             }
 
-            $("#datafile").autocomplete({
+            $("#datafile1").autocomplete({
                 source: getData,
-                select: selectItem,
+                select: selectItem1,
+                minLength: 1
+            });
+
+            var selectItem2 = function(event, ui) {
+                $("#datafile2").val(ui.item.value);
+                return false;
+            }
+
+            $("#datafile2").autocomplete({
+                source: getData,
+                select: selectItem2,
                 minLength: 1
             });
         });
@@ -250,14 +225,6 @@
         $('#m1correct').on('click', function() {
             $.get("m1correct", function(data, status) {
                 $('#m1correct').prop("disabled", true);
-                if (continuous == false) {
-                    alert(data);
-                };
-            });
-        });
-        $('#recenter').on('click', function() {
-            $.get("recenter", function(data, status) {
-                $('#recenter').prop("disabled", true);
                 if (continuous == false) {
                     alert(data);
                 };
@@ -289,7 +256,7 @@
                 }
             });
         });
-        var controlButtons = ["m1correct", "focuscorrect", "comacorrect", "clear", "analyze", "latest", "recenter"];
+        var controlButtons = ["m1correct", "focuscorrect", "comacorrect", "clear", "analyze", "latest"];
         function enable() {
             $.each(controlButtons, function(i, v) {
                 $('#' + v).prop("disabled", false);
@@ -304,16 +271,13 @@
             $(this).text("Running...");
             running = true;
             disable();
-            var file = $('#datafile').val();
+            var file1 = $('#datafile1').val();
+            var file2 = $('#datafile2').val();
             var dir = $('#datadir').html();
             var mode = $('#mode').val();
             var connect = document.getElementById('connect').checked;
             var spher = document.getElementById('spher').checked;
-            if (typeof mode === "undefined") {
-                var url = "analyze?connect=" + connect + "&fitsfile=" + dir + file + "&spher=" + spher;
-            } else {
-                var url = "analyze?connect=" + connect + "&mode=" + mode + "&fitsfile=" + dir + file + "&spher=" + spher;
-            };
+            var url = "analyze?connect=" + connect + "&fitsfile1=" + dir + file1 + "&fitsfile2=" + dir + file2 + "&spher=" + spher;
             $.getJSON(url, {format: "json"}).done(function(data, status) {
                 if (continuous == false) {
                     enable();
@@ -334,63 +298,20 @@
         $('#latest').on('click', function() {
             $.getJSON("files", {format: "json"}).done(function(data) {
                 if (data.length > 0) {
-                    latest_file = data[0];
-                    $('#datafile').val(latest_file);
+                    latest_file1 = data[0];
+                    latest_file2 = data[1];
+                    $('#datafile1').val(latest_file1);
+                    $('#datafile2').val(latest_file2);
                     $('#analyze').trigger('click');
                 };
             });
         });
-        function doNextFile() {
-            if (continuous == true) {
-                $.getJSON("files", {format: "json"}).done(function(data) {
-                    if (running == false) {
-                        if (data.length > 0) {
-                            if (data[0] != latest_file) {
-                                latest_file = data[0];
-                                $('#datafile').val(latest_file);
-                                $('#analyze').trigger('click');
-                            };
-                        };
-                    };
-                    timer = setTimeout(doNextFile, 1000);
-                });
-            } else {
-                timer = undefined;
-            };
-        };
-        $('#continuous').on('click', function() {
-            var turbo = $('#turbo').prop("checked");
-            latest_file = $('#datafile').val();
-            if (continuous == false) {
-                continuous = true;
-                $(this).text("Stop Continous WFS");
-                disable();
-                if (turbo != true) {
-                    $('#m1gain').val(0.25);
-                    $('#m2gain').val(0.25);
-                    $('#setgains').trigger('click');
-                };
-                timer = setTimeout(doNextFile, 1000);
-            } else {
-                $(this).text("Start Continuous WFS");
-                enable();
-                continuous = false;
-                if (timer != undefined) {
-                    clearTimeout(timer);
-                    timer = undefined;
-                }
-                $('#m1gain').val(orig_m1g);
-                $('#m2gain').val(orig_m2g);
-                $('#setgains').trigger('click');
-            };
-        });
         </script>
 
         <p>
-
             <div>
                 <ul class="nav nav-tabs" role="tablist">
-                    <li role="presentation" class="active"><a href="#slopes" aria-controls="slopes" role="tab" data-toggle="tab">Slopes/Residuals</a></li>
+                    <li role="presentation" class="active"><a href="#images" aria-controls="images" role="tab" data-toggle="tab">Input Images</a></li>
                     <li role="presentation"><a href="#zernfit" aria-controls="zernfit" role="tab" data-toggle="tab" onClick="getZerns()">Wavefront Fit</a></li>
                     <li role="presentation"><a href="#fringezerns" aria-controls="fringezerns" role="tab" data-toggle="tab">Zernike Mode Amplitude</a></li>
                     <li role="presentation"><a href="#zerns" aria-controls="zerns" role="tab" data-toggle="tab">RMS Wavefront Errors</a></li>
@@ -399,15 +320,15 @@
                 </ul>
 
                 <div class="tab-content">
-                    <div role="tabpanel" class="tab-pane active" id="slopes">
+                    <div role="tabpanel" class="tab-pane active" id="images">
                         <table class="table table-striped">
                             <tbody>
                                 <tr>
                                     <td>
-                                        <div id="slopes"></div>
+                                        <div id="intra"></div>
                                     </td>
                                     <td>
-                                        <div id="residuals"></div>
+                                        <div id="extra"></div>
                                     </td>
                                 </tr>
                             </tbody>

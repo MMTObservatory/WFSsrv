@@ -38,14 +38,14 @@ from tornado.log import enable_pretty_logging
 import matplotlib
 matplotlib.use('webagg')
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new_figure_manager_given_figure)
 
 from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
-sys.path.append("/mmt/cwfs/python")
+#sys.path.append("/mmt/cwfs/python")
+sys.path.append("/Users/tim/src/cwfs/python")
 from lsst.cwfs.instrument import Instrument
 from lsst.cwfs.algorithm import Algorithm
 from lsst.cwfs.image import Image, readFile
@@ -121,8 +121,6 @@ class WFSsrv(tornado.web.Application):
                 fig_ids=fig_ids,
                 figures=figkeys,
                 datadir=str(self.application.datadir) + "/",
-                modes=self.application.wfs.modes,
-                default_mode=self.application.wfs.default_mode,
                 m1_gain=self.application.wfs.m1_gain,
                 m2_gain=self.application.wfs.m2_gain,
                 log_uri=log_uri
@@ -187,7 +185,7 @@ class WFSsrv(tornado.web.Application):
                     self.application.wfs.disconnect()
 
                 # get rotator and focus values from the headers, if available
-                rot = []
+                rots = []
                 focusvals = []
                 images = [filename1, filename2]
                 arrays = []
@@ -291,7 +289,7 @@ class WFSsrv(tornado.web.Application):
 
                 # show wavefront map
                 figures['wavefront'], ax['wavefront'] = plt.subplots()
-                wfim = ax['wavefront'].imshow(algo.Wconverge, origin="lower")
+                wfim = ax['wavefront'].imshow(algo.Wconverge * 1.0e9, origin="lower", cmap='RdBu')
                 cbar_wf = figures['wavefront'].colorbar(wfim)
                 cbar_wf.set_label(zvec.units.name, rotation=0)
 
@@ -300,7 +298,7 @@ class WFSsrv(tornado.web.Application):
                 rms_asec = zernike_rms.value / self.application.wfs.tiltfactor * u.arcsec
                 log.info(f"Total wavefront RMS: {zernike_rms.round(2)}")
                 figures['barchart'] = zvec.bar_chart(
-                    title=f"Total Wavefront RMS: {zresults['zernike_rms'].round(1)} ({rms_asec.round(2)})"
+                    title=f"Total Wavefront RMS: {zernike_rms.round(1)} ({rms_asec.round(2)})"
                 )
 
                 # show total forces and PSF
@@ -313,7 +311,7 @@ class WFSsrv(tornado.web.Application):
                 self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
 
                 self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
-                    self.application.wfs.calculate_primary(zvec, threshold=thresh*u.nm, mask=spher_mask)
+                    self.application.wfs.calculate_primary(zvec, threshold=thresh, mask=spher_mask)
 
                 self.application.pending_forcefile = output + ".forces"
                 zvec_masked_file = output + ".masked.zernike"
@@ -499,7 +497,7 @@ class WFSsrv(tornado.web.Application):
     class FilesHandler(tornado.web.RequestHandler):
         def get(self):
             p = self.application.datadir
-            fullfiles = sorted(p.glob("*_*.fits"), key=lambda x: x.stat().st_mtime)
+            fullfiles = sorted(p.glob("sog*_*.fits"), key=lambda x: x.stat().st_mtime)
             files = []
             for f in fullfiles:
                 files.append(f.name)
@@ -664,8 +662,8 @@ class WFSsrv(tornado.web.Application):
                 self.managers[k].canvas.draw()
 
     def __init__(self):
-        if 'WFSROOT' in os.environ:
-            self.datadir = pathlib.Path(os.environ['WFSROOT']) / "datadir"
+        if 'CWFSROOT' in os.environ:
+            self.datadir = pathlib.Path(os.environ['CWFSROOT'])
         else:
             self.datadir = pathlib.Path("/mmt/shwfs/datadir")
 
