@@ -228,21 +228,26 @@ class WFSsrv(tornado.web.Application):
 
                     # check the RMS of the wavefront fit and only apply corrections if the fit is good enough.
                     # M2 can be more lenient to take care of large amounts of focus or coma.
-                    if zresults['residual_rms'] < 600 * u.nm:
+                    if zresults['residual_rms'] < 450 * u.nm:
                         self.application.has_pending_m1 = True
                         self.application.has_pending_coma = True
                         self.application.has_pending_focus = True
                         log.info(f"{filename}: all proposed corrections valid.")
-                    elif zresults['residual_rms'] <= 1000 * u.nm:
+                    elif zresults['residual_rms'] <= 800 * u.nm:
                         self.application.has_pending_focus = True
                         log.warning(f"{filename}: only focus corrections valid.")
-                    elif zresults['residual_rms'] > 1000 * u.nm:
+                    elif zresults['residual_rms'] > 800 * u.nm:
                         log.error(f"{filename}: wavefront fit too poor; no valid corrections")
 
                     self.application.has_pending_recenter = True
 
                     self.application.wavefront_fit = zvec
                     self.application.pending_focus = self.application.wfs.calculate_focus(zvec)
+
+                    # only allow M1 corrections if we are reasonably close to good focus...
+                    if self.application.pending_focus > 150 * u.um:
+                        self.application.has_pending_m1 = False
+
                     self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
                     self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
                     self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
