@@ -137,10 +137,16 @@
                                         {% end %}
                                     </select>
                                 {% end %}
-                                <label for="connect">Enable Corrections:</label>
-                                <input type="checkbox" id="connect" checked>
-                                <label for="spher">Ignore Spherical:</label>
-                                <input type="checkbox" id="spher">
+                                <label class="form-check-label"><label class="custom-control custom-checkbox">
+                                    <input id="connect" type="checkbox" class="custom-control-input" checked>
+                                    <span class="custom-control-indicator"></span>
+                                    <span class="custom-control-description">Enable Corrections</span>
+                                </label>
+                                <label class="form-check-label"><label class="custom-control custom-checkbox">
+                                    <input id="spher" type="checkbox" class="custom-control-input">
+                                    <span class="custom-control-indicator"></span>
+                                    <span class="custom-control-description">Ignore Spherical</span>
+                                </label>
                             </div>
                         </form>
                     </div>
@@ -190,10 +196,11 @@
                         </div>
                         <div class='col-lg-8'>
                             <form class="form-inline">
-                                <div class="form-group">
-                                    <label class="form-check-label" for="turbo">Turbo Mode:</label>
-                                    <input type="checkbox" id="turbo">
-                                </div>
+                                <label class="form-check-label"><label class="custom-control custom-checkbox">
+                                    <input id="turbo" type="checkbox" class="custom-control-input">
+                                    <span class="custom-control-indicator"></span>
+                                    <span class="custom-control-description">Turbo Mode</span>
+                                </label>
                             </form>
                         </div>
                     </div>

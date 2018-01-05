@@ -642,7 +642,7 @@ class WFSsrv(tornado.web.Application):
 
     def __init__(self):
         if 'WFSROOT' in os.environ:
-            self.datadir = pathlib.Path(os.environ['WFSROOT']) / "datadir"
+            self.datadir = pathlib.Path(os.environ['WFSROOT'])
         else:
             self.datadir = pathlib.Path("/mmt/shwfs/datadir")
 
