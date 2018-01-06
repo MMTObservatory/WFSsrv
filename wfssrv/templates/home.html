@@ -6,29 +6,23 @@
 
         <link rel="stylesheet" href="{{ static_url("css/bootstrap.min.css") }}" type="text/css">
         <link rel="stylesheet" href="{{ static_url("css/bootstrap-theme.min.css") }}" type="text/css" />
-        <link rel="stylesheet" href="{{ static_url("css/theme.css") }}" type="text/css" />
 
         <title>MMT Wavefront Sensor System</title>
     </head>
 
     <body>
-        <div class="page-header">
+        <div class="page-header" align="center">
             <h1>MMT Wavefront Sensor System</h1>
         </div>
 
-        <nav class="navbar navbar-default">
-            <div class="container-fluid">
-                <!-- Brand and toggle get grouped for better mobile display -->
-                <div class="navbar-header">
-                    <a class="navbar-brand" href="/">Home</a>
-                </div>
-                <div class="collapse navbar-collapse" id="select">
-                    <ul class="nav navbar-nav">
-                        {% for w in sorted(wfslist.keys()) %}
-                            <li role="presentation"><a href="/wfspage?wfs={{ w }}">{{ wfslist[w] }}</a></li>
-                        {% end %}
-                    </ul>
-                </div>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="/">Home</a>
+            <div class="collapse navbar-collapse" id="select">
+                <ul class="navbar-nav">
+                {% for w in sorted(wfslist.keys()) %}
+                    <li class="nav-item"><a class="nav-link" href="/wfspage?wfs={{ w }}">{{ wfslist[w] }}</a></li>
+                {% end %}
+                </ul>
             </div>
         </nav>
         <script src="{{ static_url("js/bootstrap.min.js") }}"></script>
