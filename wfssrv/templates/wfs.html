@@ -148,8 +148,10 @@
                     <div class='col-auto'>
                         <div class="input-group">
                             {% if wfsname != "MMIRS WFS" %}
-                                <div class="input-group-text">Mode:</div>
-                                <select class="custom-select" id="mode">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text" id='modelabel'>Mode:</div>
+                                </div>
+                                <select class="custom-select" id="mode" aria-describedby="modelabel">
                                     {% for m in modes %}
                                         {% if m == default_mode %}
                                             <option selected value={{ m }}>{{ modes[m]['label'] }}</option>
@@ -177,14 +179,18 @@
                 <div class="form-row form-group">
                     <div class='col-auto'>
                         <div class="input-group">
-                            <div class="input-group-text">M1 Gain:</div>
-                            <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m1_gain }}" id="m1gain">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text" id='m1label'>M1 Gain:</div>
+                            </div>
+                            <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m1_gain }}" id="m1gain" aria-describedby="m1label">
                         </div>
                     </div>
                     <div class='col-auto'>
                         <div class="input-group">
-                            <div class="input-group-text">M2 Gain:</div>
-                            <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m2_gain }}" id="m2gain">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text" id='m2label'>M2 Gain:</div>
+                            </div>
+                            <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m2_gain }}" id="m2gain" aria-describedby="m2label">
                         </div>
                     </div>
                     <div class='col-auto'>
