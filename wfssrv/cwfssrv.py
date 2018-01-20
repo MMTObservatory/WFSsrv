@@ -265,7 +265,7 @@ class WFSsrv(tornado.web.Application):
                 zvec.denormalize()
                 zvec.rotate(angle=-rotation)
 
-                log.info("\n" + repr(zvec))
+                log.debug("\n" + repr(zvec))
 
                 # output Zernikes 4 and up
                 outZer4Up(algo.zer4UpNm, 'nm', output + ".raw.lsst.zernikes")
