@@ -5,21 +5,45 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <link rel="stylesheet" href="{{ static_url("css/boilerplate.css") }}" type="text/css" />
-
-        <link rel="stylesheet" href="{{ static_url("css/style.min.css") }}" type="text/css" />
-        <link rel="stylesheet" href="{{ static_url("css/page.css") }}" type="text/css" />
-        <link rel="stylesheet" href="{{ static_url("css/fbm.css") }}" type="text/css" />
-        <link rel="stylesheet" href="{{ static_url("jquery-ui/themes/smoothness/jquery-ui.min.css") }}" >
+        <link rel="stylesheet" href="{{ static_url("css/page.css") }}" type="text/css">
+        <link rel="stylesheet" href="{{ static_url("css/jquery-ui.min.css") }}" type="text/css" />
         <link rel="stylesheet" href="{{ static_url("css/bootstrap.min.css") }}" type="text/css">
-        <link rel="stylesheet" href="{{ static_url("css/bootstrap-theme.min.css") }}" type="text/css" />
+        <link type="text/css" rel="stylesheet" href="{{ static_url("css/bootstrap-theme.min.css") }}">
+
         <style type="text/css">
+            body {
+              padding-top: 70px;
+              padding-bottom: 30px;
+            }
             .form-inline label {
-              margin-left: 15px;
-              margin-right: 5px;
+                margin-left: 15px;
+                margin-right: 10px;
+            }
+            .form-check label {
+                margin-left: 10px;
+            }
+            .form-inline button {
+                margin-left: 10px;
+            }
+            .row {
+                margin-top: 20px;
+            }
+            .theme-dropdown .dropdown-menu {
+                position: static;
+                display: block;
+                margin-bottom: 20px;
+            }
+            .theme-showcase > p > .btn {
+                margin: 5px 0;
+            }
+            .theme-showcase .navbar .container {
+                width: auto;
             }
         </style>
-        <script src="{{ static_url("js/jquery-1.11.3.min.js") }}"></script>
+
+        <script src="{{ static_url("js/jquery-3.2.1.min.js") }}"></script>
         <script src="{{ static_url("js/jquery-ui.min.js") }}"></script>
+        <script src="{{ static_url("js/popper.min.js") }}"></script>
         <script src="{{ static_url("js/bootstrap.min.js") }}"></script>
         <script src="{{ static_url("js/mpl.js") }}"></script>
         <script src="{{ static_url("js/plotly-latest.min.js") }}"></script>
@@ -91,21 +115,19 @@
             <h1>Binospec Curvature Wavefront Sensing</h1>
         </div>
 
-        <nav class="navbar navbar-default">
-            <div class="container-fluid">
-                <div class="navbar-header">
-                    <a class="navbar-brand" href="/">Home</a>
-                </div>
-            </div>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="/">Home</a>
         </nav>
 
-        <div class="container-fluid">
-            <p>
-                <div class="row">
-                    <div class='col-lg-9'>
-                        <label for="datafile"><b>FITS files to analyze:</b></label>
+        <div class="container">
+            <form>
+                <div class="form-row form-group">
+                    <div class='col-md-12'>
+                        <label for="datafile1"><b>FITS files to analyze:</b></label>
                         <div class="input-group">
-                            <span class="input-group-addon" id="datadir">{{ datadir }}</span>
+                            <div class='input-group-prepend'>
+                                <div class="input-group-text" id="datadir">{{ datadir }}</div>
+                            </div>
                             <input type="text" class="form-control" id="datafile1" aria-describedby="datadir">
                             <input type="text" class="form-control" id="datafile2" aria-describedby="datadir">
                             <span class="input-group-btn">
@@ -115,54 +137,59 @@
                         </div>
                     </div>
                 </div>
-            </p>
-            <p>
-                <div class="row">
-                    <div class='col-lg-6'>
-                        <form class="form-inline">
-                            <div class="form-group">
-                                <label for="connect">Enable Corrections:</label>
-                                <input type="checkbox" id="connect" checked>
-                                <label for="spher">Ignore Spherical:</label>
-                                <input type="checkbox" id="spher">
+                <div class="form-row form-group">
+                    <div class='col-auto'>
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input id="connect" type="checkbox" class="custom-control-input" checked>
+                            <label class="custom-control-label" for="connect">Enable Corrections</span>
+                        </div>
+                    </div>
+                    <div class='col-auto'>
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input id="spher" type="checkbox" class="custom-control-input">
+                            <label class="custom-control-label" for="spher">Ignore Spherical</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row form-group">
+                    <div class='col-auto'>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text" id='m1label'>M1 Gain:</div>
                             </div>
-                        </form>
+                            <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m1_gain }}" id="m1gain" aria-describedby="m1label">
+                        </div>
                     </div>
-                </div>
-            </p>
-            <p>
-                <div class="row">
-                    <div class='col-lg-6'>
-                        <form class="form-inline">
-                            <div class="form-group">
-                                <label for="m1gain">M1 Gain:</label>
-                                <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m1_gain }}" id="m1gain">
-                                <label for="m2gain">M2 Gain:</label>
-                                <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m2_gain }}" id="m2gain">
-                                <button type="button" id='setgains' class="btn btn-primary">Set Gains</button>
+                    <div class='col-auto'>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text" id='m2label'>M2 Gain:</div>
                             </div>
-                        </form>
-                    </div>
-                </div>
-            </p>
-            <p>
-                <div class="row">
-                    <div class='col-lg-9'>
-                        <div class='col-lg-2'>
-                            <button type="button" id='focuscorrect' disabled="disabled" class="btn btn-primary">Correct Focus</button>
-                        </div>
-                        <div class='col-lg-2'>
-                            <button type="button" id='comacorrect' disabled="disabled" class="btn btn-primary">Correct Coma</button>
-                        </div>
-                        <div class='col-lg-2'>
-                            <button type="button" id='m1correct' disabled="disabled" class="btn btn-primary">Correct M1</button>
-                        </div>
-                        <div class='col-lg-3'>
-                            <button type="button" id='clear' class="btn btn-danger">Clear Corrections</button>
+                            <input type="number" min=0.0 max=1.0 step=0.1 value="{{ m2_gain }}" id="m2gain" aria-describedby="m2label">
                         </div>
                     </div>
+                    <div class='col-auto'>
+                        <button type="button" id='setgains' class="btn btn-primary">Set Gains</button>
+                    </div>
                 </div>
-            </p>
+                <div class="form-row form-group">
+                    <div class='col-auto'>
+                        <button type="button" id='focuscorrect' disabled="disabled" class="btn btn-primary">Correct Focus</button>
+                    </div>
+                    <div class='col-auto'>
+                        <button type="button" id='comacorrect' disabled="disabled" class="btn btn-primary">Correct Coma</button>
+                    </div>
+                    <div class='col-auto'>
+                        <button type="button" id='m1correct' disabled="disabled" class="btn btn-primary">Correct M1</button>
+                    </div>
+                    <div class='col-auto'>
+                        <button type="button" id='recenter' disabled="disabled" class="btn btn-primary">Recenter</button>
+                    </div>
+                    <div class='col-auto' style="margin-left: 100px">
+                        <button type="button" id='clear' class="btn btn-danger">Clear Corrections</button>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <script>
@@ -308,96 +335,104 @@
         });
         </script>
 
-        <p>
-            <div>
-                <ul class="nav nav-tabs" role="tablist">
-                    <li role="presentation" class="active"><a href="#images" aria-controls="images" role="tab" data-toggle="tab">Input Images</a></li>
-                    <li role="presentation"><a href="#zernfit" aria-controls="zernfit" role="tab" data-toggle="tab" onClick="getZerns()">Wavefront Fit</a></li>
-                    <li role="presentation"><a href="#fringezerns" aria-controls="fringezerns" role="tab" data-toggle="tab">Zernike Mode Amplitude</a></li>
-                    <li role="presentation"><a href="#zerns" aria-controls="zerns" role="tab" data-toggle="tab">RMS Wavefront Errors</a></li>
-                    <li role="presentation"><a href="#wavefront" aria-controls="wavefront" role="tab" data-toggle="tab">Wavefront Map/PSF</a></li>
-                    <li role="presentation"><a href="#cell" aria-controls="cell" role="tab" data-toggle="tab">Cell Forces</a></li>
-                </ul>
-
-                <div class="tab-content">
-                    <div role="tabpanel" class="tab-pane active" id="images">
-                        <table class="table table-striped">
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div id="intra"></div>
-                                    </td>
-                                    <td>
-                                        <div id="extra"></div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div role="tabpanel" class="tab-pane" id="zernfit">
-                        <pre>
-                            <div id="zernikes"></div>
-                        </pre>
-                    </div>
-                    <div role="tabpanel" class="tab-pane" id="fringezerns">
-                        <table class="table table-striped">
-                            <tbody>
-                                <tr>
-                                    <td colspan="2">
-                                        <div id="fringebarchart"></div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div role="tabpanel" class="tab-pane" id="zerns">
-                        <table class="table table-striped">
-                            <tbody>
-                                <tr>
-                                    <td colspan="2">
-                                        <div id="barchart"></div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div role="tabpanel" class="tab-pane" id="wavefront">
-                        <table class="table table-striped">
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div id="wavefront"></div>
-                                    </td>
-                                    <td>
-                                        <div id="psf"></div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div role="tabpanel" class="tab-pane" id="cell">
-                        <table class="table table-striped">
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div id="forces"></div>
-                                    </td>
-                                    <td>
-                                        <div id="totalforces"></div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+        <div>
+            <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id='image-tab' href="#images" aria-controls="images" role="tab" data-toggle="tab" aria-seleced="true">Input Images</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id='zern-tab' href="#zernfit" aria-controls="zernfit" role="tab" data-toggle="tab" onClick="getZerns()" aria-selected="false">Wavefront Fit</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id='fringe-tab' href="#fringezerns" aria-controls="fringezerns" role="tab" data-toggle="tab" aria-selected="false">Zernike Mode Amplitude</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id='bar-tab' href="#zerns" aria-controls="zerns" role="tab" data-toggle="tab" aria-selected="false">RMS Wavefront Errors</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id='wave-tab' href="#wavefront" aria-controls="wavefront" role="tab" data-toggle="tab" aria-selected="false">Wavefront Map/PSF</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id='cell-tab' href="#cell" aria-controls="cell" role="tab" data-toggle="tab" aria-selected="false">Cell Forces</a>
+                </li>
+            </ul>
+            <div class="tab-content">
+                <div role="tabpanel" class="tab-pane fade show active" id="images" aria-labelledby="image-tab">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div id="intra"></div>
+                                </td>
+                                <td>
+                                    <div id="extra"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div role="tabpanel" class="tab-pane fade" id="zernfit" aria-labelledby="zern-tab">
+                    <pre>
+                        <div id="zernikes"></div>
+                    </pre>
+                </div>
+                <div role="tabpanel" class="tab-pane fade" id="fringezerns" aria-labelledby="fringe-tab">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td colspan="2" align="center">
+                                    <div id="fringebarchart"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div role="tabpanel" class="tab-pane fade" id="zerns" aria-labelledby="bar-tab">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td colspan="2" align="center">
+                                    <div id="barchart"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div role="tabpanel" class="tab-pane fade" id="wavefront" aria-labelledby="wave-tab">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div id="wavefront"></div>
+                                </td>
+                                <td>
+                                    <div id="psf"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div role="tabpanel" class="tab-pane fade" id="cell" aria-labelledby="cell-tab">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div id="forces"></div>
+                                </td>
+                                <td>
+                                    <div id="totalforces"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </p>
+        </div>
         <hr>
-        <div class='row'>
-            <div class='col-lg-12'>
-                <div id="log" class="well well-lg pre-scrollable" style="height: 200px; overflow: scroll">
-                </div>
-            </div>
+        <div class='container'>
+            <pre>
+                <div id="log" class="well well-lg pre-scrollable" style="height: 300px; overflow: scroll"></div>
+            </pre>
         </div>
     </body>
 </html>
