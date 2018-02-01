@@ -517,6 +517,16 @@ class WFSsrv(tornado.web.Application):
             self.write(json.dumps(repr(self.application.wavefront_fit)))
             self.finish()
 
+    class ClearM1Handler(tornado.web.RequestHandler):
+        def get(self):
+            self.application.wfs.clear_m1_corrections()
+            self.finish()
+
+    class ClearM2Handler(tornado.web.RequestHandler):
+        def get(self):
+            self.application.wfs.clear_m2_corrections()
+            self.finish()
+
     class ClearHandler(tornado.web.RequestHandler):
         def get(self):
             self.application.close_figures()
@@ -524,7 +534,6 @@ class WFSsrv(tornado.web.Application):
             figures = create_default_figures()
             self.application.refresh_figures(figures=figures)
             log_str = "Cleared M1 forces and M2 WFS offsets...."
-            log.info(log_str)
             self.write(log_str)
             self.finish()
 
@@ -715,6 +724,8 @@ class WFSsrv(tornado.web.Application):
             (r"/clearpending", self.PendingHandler),
             (r"/files", self.FilesHandler),
             (r"/zfit", self.ZernikeFitHandler),
+            (r"/clearm1", self.ClearM1Handler),
+            (r"/clearm2", self.ClearM2Handler),
             (r"/clear", self.ClearHandler),
             (r'/download_([a-z]+).([a-z0-9.]+)', self.Download),
             (r'/log', self.LogStreamer),
