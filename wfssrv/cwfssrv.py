@@ -520,11 +520,15 @@ class WFSsrv(tornado.web.Application):
     class ClearM1Handler(tornado.web.RequestHandler):
         def get(self):
             self.application.wfs.clear_m1_corrections()
+            log_str = "Cleared M1 forces and M2 m1spherical offsets..."
+            self.write(log_str)
             self.finish()
 
     class ClearM2Handler(tornado.web.RequestHandler):
         def get(self):
             self.application.wfs.clear_m2_corrections()
+            log_str = "Cleared M2 wfs offsets..."
+            self.write(log_str)
             self.finish()
 
     class ClearHandler(tornado.web.RequestHandler):
@@ -533,7 +537,7 @@ class WFSsrv(tornado.web.Application):
             self.application.wfs.clear_corrections()
             figures = create_default_figures()
             self.application.refresh_figures(figures=figures)
-            log_str = "Cleared M1 forces and M2 WFS offsets...."
+            log_str = "Cleared M1 forces and M2 wfs/m1spherical offsets...."
             self.write(log_str)
             self.finish()
 

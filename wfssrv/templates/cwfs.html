@@ -186,7 +186,13 @@
                         <button type="button" id='recenter' disabled="disabled" class="btn btn-primary">Recenter</button>
                     </div>
                     <div class='col-auto' style="margin-left: 100px">
-                        <button type="button" id='clear' class="btn btn-danger">Clear Corrections</button>
+                        <button type="button" id='clearm1' class="btn btn-danger">Clear M1</button>
+                    </div>
+                    <div class='col-auto' style="margin-left: 100px">
+                        <button type="button" id='clearm2' class="btn btn-danger">Clear M2</button>
+                    </div>
+                    <div class='col-auto' style="margin-left: 100px">
+                        <button type="button" id='clear' class="btn btn-danger">Clear All</button>
                     </div>
                 </div>
             </form>
@@ -263,6 +269,16 @@
             });
             $('#zernikes').text("");
         });
+        $('#clearm1').on('click', function() {
+            $.get("clear", function(data, status) {
+                alert(data);
+            });
+        });
+        $('#clearm2').on('click', function() {
+            $.get("clear", function(data, status) {
+                alert(data);
+            });
+        });
         $('#setgains').on('click', function() {
             var m1g = $('#m1gain').val();
             var m2g = $('#m2gain').val();
@@ -283,7 +299,7 @@
                 }
             });
         });
-        var controlButtons = ["m1correct", "focuscorrect", "comacorrect", "clear", "analyze", "latest"];
+        var controlButtons = ["m1correct", "focuscorrect", "comacorrect", "clearm1", "clearm2", "clear", "analyze", "latest"];
         function enable() {
             $.each(controlButtons, function(i, v) {
                 $('#' + v).prop("disabled", false);
