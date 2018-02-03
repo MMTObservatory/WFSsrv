@@ -40,7 +40,7 @@ matplotlib.use('webagg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new_figure_manager_given_figure)
 
-from mmtwfs.wfs import WFSFactory
+from mmtwfs.wfs import WFSFactory, center_pupil
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
@@ -166,10 +166,8 @@ class WFSsrv(tornado.web.Application):
             thresh = float(thresh) * u.nm
             focoff = self.get_argument("focoff", default=1000.0)
             focoff = float(focoff)
-            cenx = self.get_argument("cenx", default=295)
-            cenx = int(cenx)
-            ceny = self.get_argument("ceny", default=259)
-            ceny = int(ceny)
+
+            tel = self.application.wfs.telescope
 
             if spher == "true":
                 spher_mask = ['Z11', 'Z22']
@@ -192,16 +190,24 @@ class WFSsrv(tornado.web.Application):
                 for image in images:
                     h = fits.open(image)
                     hdr = h[-1].header
-                    data = h[-1].data
-                    if len(h) > 1 or data.shape == (516, 532):  # check if we're raw binospec SOG images
-                        log.info(f"Found raw Binospec SOG image. Trimming and flipping {image} up/down.")
-                        data = data[ceny-128:ceny+128, cenx-128:cenx+128]
-                        data = np.flipud(data)
-                    arrays.append(data)
                     if 'ROT' in hdr:
                         rots.append(hdr['ROT'])
+                        rot = hdr['ROT']
+                    else:
+                        rot = 0.0
                     if 'FOCUS' in hdr:
                         focusvals.append(hdr['FOCUS'])
+                    data = h[-1].data
+                    orig_shape = data.shape
+                    pup_mask = tel.pupil_mask(rotation=rot, size=120)
+                    x, y, fig = center_pupil(data, pup_mask, plot=False)
+                    cenx = int(np.round(x))
+                    ceny = int(np.round(y))
+                    data = data[ceny-96:ceny+96, cenx-96:cenx+96]
+                    if len(h) > 1 or orig_shape == (516, 532):  # check if we're raw binospec SOG images
+                        log.info(f"Found raw Binospec SOG image. Flipping {image} up/down.")
+                        data = np.flipud(data)
+                    arrays.append(data)
 
                 if len(rots) > 0:
                     rot = np.array(rots).mean() * u.deg
@@ -271,7 +277,6 @@ class WFSsrv(tornado.web.Application):
                 outZer4Up(algo.zer4UpNm, 'nm', output + ".raw.lsst.zernikes")
                 zvec.save(filename=output + ".rot.zernikes")
 
-                tel = self.application.wfs.telescope
                 m1gain = self.application.wfs.m1_gain
 
                 # this is the total if we try to correct everything as fit
