@@ -343,6 +343,9 @@ class WFSsrv(tornado.web.Application):
                         self.application.pending_cc_y,
                     )
                 )
+                self.application.has_pending_m1 = True
+                self.application.has_pending_focus = True
+                self.application.has_pending_coma = True
 
                 self.application.refresh_figures(figures=figures)
             else:
