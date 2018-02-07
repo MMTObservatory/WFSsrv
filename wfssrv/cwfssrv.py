@@ -44,7 +44,7 @@ from mmtwfs.wfs import WFSFactory, center_pupil
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
-#sys.path.append("/mmt/cwfs/python")
+sys.path.append("/mmt/cwfs/python")
 sys.path.append("/Users/tim/src/cwfs/python")
 from lsst.cwfs.instrument import Instrument
 from lsst.cwfs.algorithm import Algorithm
