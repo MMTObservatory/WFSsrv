@@ -511,7 +511,13 @@ class WFSsrv(tornado.web.Application):
     class FilesHandler(tornado.web.RequestHandler):
         def get(self):
             p = self.application.datadir
-            fullfiles = sorted(p.glob("sog*_*.fits"), key=lambda x: x.stat().st_mtime)
+            try:
+                fullfiles = sorted(p.glob("sog*_*.fits"), key=lambda x: x.stat().st_mtime)
+            except PermissionError as e:
+                # started getting weird permission errors on hacksaw that looks like NFS race bug.
+                # running 'ls' in the directory clears the error...
+                log.warning(f"Permission error while listing files in {p}...")
+                os.system(f"ls {p} > /dev/null")
             files = []
             for f in fullfiles:
                 files.append(f.name)
