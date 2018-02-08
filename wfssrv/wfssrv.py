@@ -445,6 +445,7 @@ class WFSsrv(tornado.web.Application):
                 # running 'ls' in the directory clears the error...
                 log.warning(f"Permission error while listing files in {p}...")
                 os.system(f"ls {p} > /dev/null")
+                fullfiles = sorted(p.glob("*_*.fits"), key=lambda x: x.stat().st_mtime)
             files = []
             for f in fullfiles:
                 files.append(f.name)
