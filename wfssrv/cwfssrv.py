@@ -200,7 +200,7 @@ class WFSsrv(tornado.web.Application):
                     data = h[-1].data
                     orig_shape = data.shape
                     pup_mask = tel.pupil_mask(rotation=rot, size=120)
-                    x, y, fig = center_pupil(data, pup_mask, plot=False)
+                    x, y, fig = center_pupil(data, pup_mask, threshold=0.8, plot=False)
                     cenx = int(np.round(x))
                     ceny = int(np.round(y))
                     data = data[ceny-96:ceny+96, cenx-96:cenx+96]
