@@ -239,6 +239,17 @@
                 minLength: 1
             });
         });
+        var controlButtons = ["m1correct", "focuscorrect", "comacorrect", "clearm1", "clearm2", "clear", "analyze", "latest"];
+        function enable() {
+            $.each(controlButtons, function(i, v) {
+                $('#' + v).prop("disabled", false);
+            });
+        };
+        function disable() {
+            $.each(controlButtons, function(i, v) {
+                $('#' + v).prop("disabled", true);
+            });
+        };
         $('#focuscorrect').on('click', function() {
             $.get("focuscorrect", function(data, status) {
                 $('#focuscorrect').prop("disabled", true);
@@ -264,19 +275,24 @@
             });
         });
         $('#clear').on('click', function() {
+            disable();
             $.get("clear", function(data, status) {
                 alert(data);
+                enable();
             });
-            $('#zernikes').text("");
         });
         $('#clearm1').on('click', function() {
+            disable();
             $.get("clearm1", function(data, status) {
                 alert(data);
+                enable();
             });
         });
         $('#clearm2').on('click', function() {
+            disable();
             $.get("clearm2", function(data, status) {
                 alert(data);
+                enable();
             });
         });
         $('#setgains').on('click', function() {
@@ -299,17 +315,6 @@
                 }
             });
         });
-        var controlButtons = ["m1correct", "focuscorrect", "comacorrect", "clearm1", "clearm2", "clear", "analyze", "latest"];
-        function enable() {
-            $.each(controlButtons, function(i, v) {
-                $('#' + v).prop("disabled", false);
-            });
-        };
-        function disable() {
-            $.each(controlButtons, function(i, v) {
-                $('#' + v).prop("disabled", true);
-            });
-        };
         $('#analyze').on('click', function() {
             $(this).text("Running...");
             running = true;
