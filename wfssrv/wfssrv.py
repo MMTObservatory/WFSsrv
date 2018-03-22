@@ -211,6 +211,7 @@ class WFSsrv(tornado.web.Application):
                     figures['wavefront'] = zvec.plot_map()
                     rms_asec = zresults['zernike_rms'].value / self.application.wfs.tiltfactor * u.arcsec
                     figures['barchart'] = zvec.bar_chart(
+                        last_mode=21,
                         residual=zresults['residual_rms'],
                         title=f"Total Wavefront RMS: {zresults['zernike_rms'].round(1)} ({rms_asec.round(2)})"
                     )
@@ -267,7 +268,8 @@ class WFSsrv(tornado.web.Application):
                             self.application.pending_focus,
                             self.application.pending_cc_x,
                             self.application.pending_cc_y,
-                        )
+                        ),
+                        last_mode=21
                     )
                 else:
                     log.error(f"Wavefront measurement failed: {filename}")
@@ -456,7 +458,7 @@ class WFSsrv(tornado.web.Application):
     class ZernikeFitHandler(tornado.web.RequestHandler):
         def get(self):
             self.application.wavefront_fit.denormalize()
-            self.write(json.dumps(repr(self.application.wavefront_fit)))
+            self.write(json.dumps(self.application.wavefront_fit.pretty_print()))
             self.finish()
 
     class ClearM1Handler(tornado.web.RequestHandler):
