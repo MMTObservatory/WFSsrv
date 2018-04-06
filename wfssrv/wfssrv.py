@@ -242,7 +242,6 @@ class WFSsrv(tornado.web.Application):
 
                     self.application.has_pending_recenter = True
 
-                    self.application.wavefront_fit = zvec
                     self.application.pending_focus = self.application.wfs.calculate_focus(zvec)
 
                     # only allow M1 corrections if we are reasonably close to good focus...
@@ -281,7 +280,7 @@ class WFSsrv(tornado.web.Application):
                 log.error(f"No such file: {filename}")
 
             self.application.wavefront_fit.denormalize()
-            self.write(json.dumps(repr(self.application.wavefront_fit)))
+            self.write(json.dumps(self.application.wavefront_fit.pretty_print()))
             self.application.busy = False
             self.finish()
 
