@@ -8,7 +8,7 @@ import io
 import os
 import json
 import pathlib
-import urllib3
+import redis
 
 import numpy as np
 
@@ -644,26 +644,18 @@ class WFSsrv(tornado.web.Application):
                 self.managers[k]._send_event("refresh")
                 self.managers[k].canvas.draw()
 
-    def set_redis(self, key, value, http=urllib3.PoolManager()):
+    def set_redis(self, key, value):
         """
-        Set redis 'key' to 'value' via the MMTO web API
+        Set and publish redis 'key' to 'value'
         """
-        url = self.redis_host + "/setpub"
-        r = http.request(
-            'POST',
-            url,
-            fields={
-                'key': key,
-                'value': f'{value}'.encode('utf-8'),
-                'expires': 3600
-            },
-            headers={
-                'Authorization': 'Basic bW10cmVzdDptbXRwYXNzd29yZA==',
-                'Cache-Control': 'no-cache,max-age=0',
-                'Pragma': 'no-cache'
-            }
-        )
-        return r
+        resp = (None, None)
+        try:
+            r1 = self.redis_server.set(key, value)
+            r2 = self.redis_server.publish(key, value)
+            resp = (r1, r2)
+        except Exception as e:
+            log.warning(f"Failed to set redis {key} to {value}: {e}")
+        return resp
 
     def update_seeing(self, results):
         try:
@@ -678,8 +670,17 @@ class WFSsrv(tornado.web.Application):
     def __init__(self):
         if 'WFSROOT' in os.environ:
             self.datadir = pathlib.Path(os.environ['WFSROOT'])
+        elif 'HOME' in os.environ:
+            self.datadir = pathlib.Path(os.environ['HOME']) / "wfsdat"
         else:
-            self.datadir = pathlib.Path("/mmt/shwfs/datadir")
+            self.datadir = pathlib.Path("wfsdat")
+
+        if not self.datadir.exists():
+            self.datadir.mkdir(parents=True)
+
+        if not self.datadir.is_dir():
+            self.datadir.unlink()
+            self.datadir.mkdir(parents=True)
 
         if os.path.isdir(self.datadir):
             self.logfile = self.datadir / "wfs.log"
@@ -690,9 +691,6 @@ class WFSsrv(tornado.web.Application):
             enable_pretty_logging()
         else:
             self.logfile = pathlib.Path("/dev/null")
-
-        self.redis_host = "https://api.mmto.arizona.edu/APIv1"
-        self.http = urllib3.PoolManager()
 
         self.wfs = None
         self.wfs_systems = {}
@@ -713,6 +711,8 @@ class WFSsrv(tornado.web.Application):
         self.fig_id_map = {}
         self.refresh_figures()
         self.wavefront_fit = ZernikeVector(Z04=1)
+
+        self.redis_server = redis.StrictRedis(host='localhost', port=6379, db=0)
 
         handlers = [
             (r"/", self.HomeHandler),
