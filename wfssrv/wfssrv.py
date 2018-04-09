@@ -196,7 +196,15 @@ class WFSsrv(tornado.web.Application):
                         if self.application.wfs.connected:
                             log.info("Publishing seeing values to redis.")
                             self.application.update_seeing(results)
+                    figures = {}
+                    figures['slopes'] = results['figures']['slopes']
+                    self.application.refresh_figure('slopes', figures['slopes'])
+
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
+                    log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
+                    figures['residuals'] = zresults['resid_plot']
+                    self.application.refresh_figure('residuals', figures['residuals'])
+
                     zvec = zresults['zernike']
                     zvec_raw = zresults['rot_zernike']
                     zvec_ref = zresults['ref_zernike']
@@ -205,20 +213,19 @@ class WFSsrv(tornado.web.Application):
 
                     # this is the total if we try to correct everything as fit
                     totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec, gain=m1gain)
-                    figures = {}
-                    figures['slopes'] = results['figures']['slopes']
-                    figures['residuals'] = zresults['resid_plot']
-                    figures['wavefront'] = zvec.plot_map()
+
                     rms_asec = zresults['zernike_rms'].value / self.application.wfs.tiltfactor * u.arcsec
                     figures['barchart'] = zvec.bar_chart(
                         last_mode=21,
                         residual=zresults['residual_rms'],
                         title=f"Total Wavefront RMS: {zresults['zernike_rms'].round(1)} ({rms_asec.round(2)})"
                     )
+                    self.application.refresh_figure('barchart', figures['barchart'])
+
                     figures['totalforces'] = tel.plot_forces(totforces, totm1focus)
                     figures['totalforces'].set_label("Total M1 Actuator Forces")
-                    psf, figures['psf'] = tel.psf(zv=zvec.copy())
-                    log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
+                    self.application.refresh_figure('totalforces', figures['totalforces'])
+
                     zvec_file = self.application.datadir / (filename + ".zernike")
                     zvec_raw_file = self.application.datadir / (filename + ".raw.zernike")
                     zvec_ref_file = self.application.datadir / (filename + ".ref.zernike")
@@ -249,6 +256,16 @@ class WFSsrv(tornado.web.Application):
                         self.application.has_pending_m1 = False
 
                     self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
+                    figures['fringebarchart'] = zvec.fringe_bar_chart(
+                        title="Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
+                            self.application.pending_focus,
+                            self.application.pending_cc_x,
+                            self.application.pending_cc_y,
+                        ),
+                        last_mode=21
+                    )
+                    self.application.refresh_figure('fringebarchart', figures['fringebarchart'])
+
                     self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
                     self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
                         self.application.wfs.calculate_primary(zvec, threshold=0.5*zresults['residual_rms'], mask=spher_mask)
@@ -262,20 +279,19 @@ class WFSsrv(tornado.web.Application):
                         limit=limit
                     )
                     figures['forces'].set_label("Requested M1 Actuator Forces")
-                    figures['fringebarchart'] = zvec.fringe_bar_chart(
-                        title="Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
-                            self.application.pending_focus,
-                            self.application.pending_cc_x,
-                            self.application.pending_cc_y,
-                        ),
-                        last_mode=21
-                    )
+                    self.application.refresh_figure('forces', figures['forces'])
+
+                    figures['wavefront'] = zvec.plot_map()
+                    self.application.refresh_figure('wavefront', figures['wavefront'])
+                    psf, figures['psf'] = tel.psf(zv=zvec.copy())
+                    self.application.refresh_figure('psf', figures['psf'])
+                    self.figures = figures
                 else:
                     log.error(f"Wavefront measurement failed: {filename}")
                     figures = create_default_figures()
                     figures['slopes'] = results['figures']['slopes']
+                    self.application.refresh_figures(figures=figures)
 
-                self.application.refresh_figures(figures=figures)
             else:
                 log.error(f"No such file: {filename}")
 
@@ -625,6 +641,19 @@ class WFSsrv(tornado.web.Application):
         if self.figures is not None:
             plt.close('all')
 
+    def refresh_figure(self, k, figure):
+        if k not in self.managers:
+            fignum = id(figure)
+            self.managers[k] = new_figure_manager_given_figure(fignum, figure)
+            self.fig_id_map[fignum] = self.managers[k]
+        else:
+            canvas = FigureCanvasWebAggCore(figure)
+            self.managers[k].canvas = canvas
+            self.managers[k].canvas.manager = self.managers[k]
+            self.managers[k]._get_toolbar(canvas)
+            self.managers[k]._send_event("refresh")
+            self.managers[k].canvas.draw()
+
     def refresh_figures(self, figures=None):
         if figures is None:
             self.figures = create_default_figures()
@@ -632,17 +661,7 @@ class WFSsrv(tornado.web.Application):
             self.figures = figures
 
         for k, f in self.figures.items():
-            if k not in self.managers:
-                fignum = id(f)
-                self.managers[k] = new_figure_manager_given_figure(fignum, f)
-                self.fig_id_map[fignum] = self.managers[k]
-            else:
-                canvas = FigureCanvasWebAggCore(f)
-                self.managers[k].canvas = canvas
-                self.managers[k].canvas.manager = self.managers[k]
-                self.managers[k]._get_toolbar(canvas)
-                self.managers[k]._send_event("refresh")
-                self.managers[k].canvas.draw()
+            self.refresh_figure(k, f)
 
     def set_redis(self, key, value):
         """
