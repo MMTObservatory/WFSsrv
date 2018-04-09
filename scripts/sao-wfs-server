@@ -6,7 +6,7 @@ package require dns
 if {[info exists env(WFSROOT)]} {
     set datadir [file join $env(WFSROOT) datadir]
 } else {
-    set datadir /mmt/shwfs/datadir
+    set datadir /home/mmtop/wfsdat
 }
 
 # set up where to find the script for updating the image headers
