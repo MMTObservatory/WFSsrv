@@ -262,6 +262,7 @@ class WFSsrv(tornado.web.Application):
                             self.application.pending_cc_x,
                             self.application.pending_cc_y,
                         ),
+                        max_c=1500*u.nm,
                         last_mode=21
                     )
                     self.application.refresh_figure('fringebarchart', figures['fringebarchart'])
