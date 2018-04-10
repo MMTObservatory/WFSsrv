@@ -23,10 +23,13 @@ except ImportError:
     raise RuntimeError("This server requires tornado.")
 import tornado.web
 import tornado.httpserver
+import tornado.gen
 import tornado.ioloop
 import tornado.websocket
 from tornado.process import Subprocess
+from tornado.concurrent import run_on_executor
 from tornado.log import enable_pretty_logging
+from concurrent.futures import ThreadPoolExecutor
 
 import matplotlib
 matplotlib.use('webagg')
@@ -36,6 +39,7 @@ from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new
 from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
+
 
 glog = logging.getLogger('')
 log = logging.getLogger('WFSsrv')
@@ -162,6 +166,71 @@ class WFSsrv(tornado.web.Application):
             self.finish()
 
     class AnalyzeHandler(tornado.web.RequestHandler):
+        executor = ThreadPoolExecutor(max_workers=8)
+
+        @tornado.gen.coroutine
+        def async_plot(self, func, *args):
+            k = yield func(*args)
+            self.complete_refresh(k)
+
+        @run_on_executor
+        def make_psf(self, zernikes, telescope):
+            log.debug("Making PSF image...")
+            psf, self.application.figures['psf'] = telescope.psf(zv=zernikes.copy())
+            return 'psf'
+
+        @run_on_executor
+        def make_wfmap(self, zernikes):
+            log.debug("Making wavefront map...")
+            self.application.figures['wavefront'] = zernikes.plot_map()
+            return 'wavefront'
+
+        @run_on_executor
+        def make_barchart(self, zernikes, zrms):
+            log.debug("Making bar chart...")
+            rms_asec = zrms.value / self.application.wfs.tiltfactor * u.arcsec
+            self.application.figures['barchart'] = zernikes.bar_chart(
+                last_mode=21,
+                residual=zrms,
+                title=f"Total Wavefront RMS: {zrms.round(1)} ({rms_asec.round(2)})"
+            )
+            return 'barchart'
+
+        @run_on_executor
+        def make_fringebarchart(self, zernikes, focus, cc_x, cc_y):
+            log.debug("Making fringe bar chart...")
+            self.application.figures['fringebarchart'] = zernikes.fringe_bar_chart(
+                title="Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
+                    focus,
+                    cc_x,
+                    cc_y,
+                ),
+                max_c=1500*u.nm,
+                last_mode=21
+            )
+            return 'fringebarchart'
+
+        @run_on_executor
+        def make_totalforces(self, telescope, forces, m1focus):
+            log.debug("Making total forces plot...")
+            self.application.figures['totalforces'] = telescope.plot_forces(forces, m1focus)
+            self.application.figures['totalforces'].set_label("Total M1 Actuator Forces")
+            return 'totalforces'
+
+        @run_on_executor
+        def make_pendingforces(self, telescope, forces, m1focus, limit):
+            log.debug("Making pending forces plot...")
+            self.application.figures['forces'] = telescope.plot_forces(
+                forces,
+                m1focus,
+                limit=limit
+            )
+            self.application.figures['forces'].set_label("Requested M1 Actuator Forces")
+            return 'forces'
+
+        def complete_refresh(self, key):
+            self.application.refresh_figure(key, self.application.figures[key])
+
         def get(self):
             self.application.close_figures()
             try:
@@ -197,39 +266,32 @@ class WFSsrv(tornado.web.Application):
                         if self.application.wfs.connected:
                             log.info("Publishing seeing values to redis.")
                             self.application.update_seeing(results)
-                    figures = {}
+                    tel = self.application.wfs.telescope
+
                     log.debug("Making slopes plot...")
-                    figures['slopes'] = results['figures']['slopes']
-                    self.application.refresh_figure('slopes', figures['slopes'])
+                    self.application.figures['slopes'] = results['figures']['slopes']
+                    self.application.refresh_figure('slopes', self.application.figures['slopes'])
 
                     log.debug("Fitting wavefront...")
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
                     log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
-                    figures['residuals'] = zresults['resid_plot']
-                    self.application.refresh_figure('residuals', figures['residuals'])
+                    self.application.figures['residuals'] = zresults['resid_plot']
+                    self.application.refresh_figure('residuals', self.application.figures['residuals'])
 
                     zvec = zresults['zernike']
                     zvec_raw = zresults['rot_zernike']
                     zvec_ref = zresults['ref_zernike']
-                    tel = self.application.wfs.telescope
+
+                    self.async_plot(self.make_psf, zvec, tel)
+                    self.async_plot(self.make_wfmap, zvec)
+
                     m1gain = self.application.wfs.m1_gain
 
                     # this is the total if we try to correct everything as fit
                     totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec, gain=m1gain)
 
-                    log.debug("Making bar chart...")
-                    rms_asec = zresults['zernike_rms'].value / self.application.wfs.tiltfactor * u.arcsec
-                    figures['barchart'] = zvec.bar_chart(
-                        last_mode=21,
-                        residual=zresults['residual_rms'],
-                        title=f"Total Wavefront RMS: {zresults['zernike_rms'].round(1)} ({rms_asec.round(2)})"
-                    )
-                    self.application.refresh_figure('barchart', figures['barchart'])
-
-                    log.debug("Making total forces plot...")
-                    figures['totalforces'] = tel.plot_forces(totforces, totm1focus)
-                    figures['totalforces'].set_label("Total M1 Actuator Forces")
-                    self.application.refresh_figure('totalforces', figures['totalforces'])
+                    self.async_plot(self.make_barchart, zvec, zresults['zernike_rms'])
+                    self.async_plot(self.make_totalforces, tel, totforces, totm1focus)
 
                     log.debug("Saving files and calculating corrections...")
                     zvec_file = self.application.datadir / (filename + ".zernike")
@@ -261,20 +323,17 @@ class WFSsrv(tornado.web.Application):
                     if self.application.pending_focus > 150 * u.um:
                         self.application.has_pending_m1 = False
 
-                    log.debug("Making fringe bar chart...")
-                    self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
-                    figures['fringebarchart'] = zvec.fringe_bar_chart(
-                        title="Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
-                            self.application.pending_focus,
-                            self.application.pending_cc_x,
-                            self.application.pending_cc_y,
-                        ),
-                        max_c=1500*u.nm,
-                        last_mode=21
-                    )
-                    self.application.refresh_figure('fringebarchart', figures['fringebarchart'])
 
-                    log.debug("Calculating forces and making requested forces plot...")
+                    self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
+                    self.async_plot(
+                        self.make_fringebarchart,
+                        zvec,
+                        self.application.pending_focus,
+                        self.application.pending_cc_x,
+                        self.application.pending_cc_y
+                    )
+
+                    log.debug("Calculating pending forces...")
                     self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
                     self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
                         self.application.wfs.calculate_primary(zvec, threshold=0.5*zresults['residual_rms'], mask=spher_mask)
@@ -282,22 +341,13 @@ class WFSsrv(tornado.web.Application):
                     zvec_masked_file = self.application.datadir / (filename + ".masked.zernike")
                     zv_masked.save(filename=zvec_masked_file)
                     limit = np.round(np.abs(self.application.pending_forces['force']).max())
-                    figures['forces'] = tel.plot_forces(
+                    self.async_plot(
+                        self.make_pendingforces,
+                        tel,
                         self.application.pending_forces,
                         self.application.pending_m1focus,
-                        limit=limit
+                        limit
                     )
-                    figures['forces'].set_label("Requested M1 Actuator Forces")
-                    self.application.refresh_figure('forces', figures['forces'])
-
-                    log.debug("Making wavefront map...")
-                    figures['wavefront'] = zvec.plot_map()
-                    self.application.refresh_figure('wavefront', figures['wavefront'])
-
-                    log.debug("Making PSF image...")
-                    psf, figures['psf'] = tel.psf(zv=zvec.copy())
-                    self.application.refresh_figure('psf', figures['psf'])
-                    self.figures = figures
                 else:
                     log.error(f"Wavefront measurement failed: {filename}")
                     figures = create_default_figures()
