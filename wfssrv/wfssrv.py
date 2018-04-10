@@ -39,7 +39,7 @@ from mmtwfs.telescope import MMT
 
 glog = logging.getLogger('')
 log = logging.getLogger('WFSsrv')
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 
 def create_default_figures():
@@ -188,6 +188,7 @@ class WFSsrv(tornado.web.Application):
                 else:
                     self.application.wfs.disconnect()
 
+                log.debug("Measuring slopes...")
                 results = self.application.wfs.measure_slopes(filename, mode=mode, plot=True)
                 if results['slopes'] is not None:
                     if 'seeing' in results:
@@ -197,9 +198,11 @@ class WFSsrv(tornado.web.Application):
                             log.info("Publishing seeing values to redis.")
                             self.application.update_seeing(results)
                     figures = {}
+                    log.debug("Making slopes plot...")
                     figures['slopes'] = results['figures']['slopes']
                     self.application.refresh_figure('slopes', figures['slopes'])
 
+                    log.debug("Fitting wavefront...")
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
                     log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
                     figures['residuals'] = zresults['resid_plot']
@@ -214,6 +217,7 @@ class WFSsrv(tornado.web.Application):
                     # this is the total if we try to correct everything as fit
                     totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec, gain=m1gain)
 
+                    log.debug("Making bar chart...")
                     rms_asec = zresults['zernike_rms'].value / self.application.wfs.tiltfactor * u.arcsec
                     figures['barchart'] = zvec.bar_chart(
                         last_mode=21,
@@ -222,10 +226,12 @@ class WFSsrv(tornado.web.Application):
                     )
                     self.application.refresh_figure('barchart', figures['barchart'])
 
+                    log.debug("Making total forces plot...")
                     figures['totalforces'] = tel.plot_forces(totforces, totm1focus)
                     figures['totalforces'].set_label("Total M1 Actuator Forces")
                     self.application.refresh_figure('totalforces', figures['totalforces'])
 
+                    log.debug("Saving files and calculating corrections...")
                     zvec_file = self.application.datadir / (filename + ".zernike")
                     zvec_raw_file = self.application.datadir / (filename + ".raw.zernike")
                     zvec_ref_file = self.application.datadir / (filename + ".ref.zernike")
@@ -255,6 +261,7 @@ class WFSsrv(tornado.web.Application):
                     if self.application.pending_focus > 150 * u.um:
                         self.application.has_pending_m1 = False
 
+                    log.debug("Making fringe bar chart...")
                     self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
                     figures['fringebarchart'] = zvec.fringe_bar_chart(
                         title="Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
@@ -267,6 +274,7 @@ class WFSsrv(tornado.web.Application):
                     )
                     self.application.refresh_figure('fringebarchart', figures['fringebarchart'])
 
+                    log.debug("Calculating forces and making requested forces plot...")
                     self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
                     self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
                         self.application.wfs.calculate_primary(zvec, threshold=0.5*zresults['residual_rms'], mask=spher_mask)
@@ -282,8 +290,11 @@ class WFSsrv(tornado.web.Application):
                     figures['forces'].set_label("Requested M1 Actuator Forces")
                     self.application.refresh_figure('forces', figures['forces'])
 
+                    log.debug("Making wavefront map...")
                     figures['wavefront'] = zvec.plot_map()
                     self.application.refresh_figure('wavefront', figures['wavefront'])
+
+                    log.debug("Making PSF image...")
                     psf, figures['psf'] = tel.psf(zv=zvec.copy())
                     self.application.refresh_figure('psf', figures['psf'])
                     self.figures = figures
@@ -568,7 +579,7 @@ class WFSsrv(tornado.web.Application):
                 color = "text-danger"
             else:
                 color = "text-success"
-            if "tornado.access" not in html and "poppy" not in html:
+            if "tornado.access" not in html and "poppy" not in html and "DEBUG" not in html:
                 html = "<samp><span class=%s>%s</span></samp>" % (color, html)
                 html += "<script>$(\"#log\").scrollTop($(\"#log\")[0].scrollHeight);</script>"
                 self.write_message(html.encode())
@@ -681,9 +692,12 @@ class WFSsrv(tornado.web.Application):
         try:
             wfs_seeing = results['seeing'].round(2).value
             wfs_raw_seeing = results['raw_seeing'].round(2).value
-            self.set_redis('wfs_seeing', wfs_seeing)
-            self.set_redis('wfs_raw_seeing', wfs_raw_seeing)
-            log.info(f"Set redis values wfs_seeing={wfs_seeing} and wfs_raw_seeing={wfs_raw_seeing}")
+            r1 = self.set_redis('wfs_seeing', wfs_seeing)
+            r2 = self.set_redis('wfs_raw_seeing', wfs_raw_seeing)
+            if None not in r1 and None not in r2:
+                log.info(f"Set redis values wfs_seeing={wfs_seeing} and wfs_raw_seeing={wfs_raw_seeing}")
+            else:
+                log.warning("Problem sending seeing values to redis...")
         except Exception as e:
             log.warning(f'Error connecting to MMTO API server... : {e}')
 
