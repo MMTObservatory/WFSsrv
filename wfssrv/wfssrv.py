@@ -166,7 +166,7 @@ class WFSsrv(tornado.web.Application):
             self.finish()
 
     class AnalyzeHandler(tornado.web.RequestHandler):
-        executor = ThreadPoolExecutor(max_workers=8)
+        executor = ThreadPoolExecutor(max_workers=10)
 
         @tornado.gen.coroutine
         def async_plot(self, func, *args):
