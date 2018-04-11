@@ -186,12 +186,12 @@ class WFSsrv(tornado.web.Application):
             return 'wavefront'
 
         @run_on_executor
-        def make_barchart(self, zernikes, zrms):
+        def make_barchart(self, zernikes, zrms, residual):
             log.debug("Making bar chart...")
             rms_asec = zrms.value / self.application.wfs.tiltfactor * u.arcsec
             self.application.figures['barchart'] = zernikes.bar_chart(
                 last_mode=21,
-                residual=zrms,
+                residual=residual,
                 title=f"Total Wavefront RMS: {zrms.round(1)} ({rms_asec.round(2)})"
             )
             return 'barchart'
@@ -278,9 +278,9 @@ class WFSsrv(tornado.web.Application):
                     self.application.figures['residuals'] = zresults['resid_plot']
                     self.application.refresh_figure('residuals', self.application.figures['residuals'])
 
-                    zvec = zresults['zernike']
-                    zvec_raw = zresults['rot_zernike']
-                    zvec_ref = zresults['ref_zernike']
+                    zvec = zresults['zernike'].copy()
+                    zvec_raw = zresults['rot_zernike'].copy()
+                    zvec_ref = zresults['ref_zernike'].copy()
 
                     self.async_plot(self.make_psf, zvec, tel)
                     self.async_plot(self.make_wfmap, zvec)
@@ -290,7 +290,7 @@ class WFSsrv(tornado.web.Application):
                     # this is the total if we try to correct everything as fit
                     totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec, gain=m1gain)
 
-                    self.async_plot(self.make_barchart, zvec, zresults['zernike_rms'])
+                    self.async_plot(self.make_barchart, zvec, zresults['zernike_rms'], zresults['residual_rms'])
                     self.async_plot(self.make_totalforces, tel, totforces, totm1focus)
 
                     log.debug("Saving files and calculating corrections...")
