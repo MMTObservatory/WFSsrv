@@ -278,19 +278,19 @@ class WFSsrv(tornado.web.Application):
                     self.application.figures['residuals'] = zresults['resid_plot']
                     self.application.refresh_figure('residuals', self.application.figures['residuals'])
 
-                    zvec = zresults['zernike'].copy()
-                    zvec_raw = zresults['rot_zernike'].copy()
-                    zvec_ref = zresults['ref_zernike'].copy()
+                    zvec = zresults['zernike']
+                    zvec_raw = zresults['rot_zernike']
+                    zvec_ref = zresults['ref_zernike']
 
-                    self.async_plot(self.make_psf, zvec, tel)
-                    self.async_plot(self.make_wfmap, zvec)
+                    self.async_plot(self.make_psf, zvec.copy(), tel)
+                    self.async_plot(self.make_wfmap, zvec.copy())
 
                     m1gain = self.application.wfs.m1_gain
 
                     # this is the total if we try to correct everything as fit
                     totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec, gain=m1gain)
 
-                    self.async_plot(self.make_barchart, zvec, zresults['zernike_rms'], zresults['residual_rms'])
+                    self.async_plot(self.make_barchart, zvec.copy(), zresults['zernike_rms'], zresults['residual_rms'])
                     self.async_plot(self.make_totalforces, tel, totforces, totm1focus)
 
                     log.debug("Saving files and calculating corrections...")
@@ -327,7 +327,7 @@ class WFSsrv(tornado.web.Application):
                     self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
                     self.async_plot(
                         self.make_fringebarchart,
-                        zvec,
+                        zvec.copy(),
                         self.application.pending_focus,
                         self.application.pending_cc_x,
                         self.application.pending_cc_y
