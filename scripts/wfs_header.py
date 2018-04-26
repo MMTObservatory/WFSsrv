@@ -16,7 +16,7 @@ if __name__ == "__main__":
         header = newhdu.header
     elif isinstance(newhdu, list):
         header = None
-        h = newhdu[1]
+        h = newhdu[-1]
         header = h.header
         if header is None:
             raise ValueError("No PrimaryHDU found in HDU list.")
