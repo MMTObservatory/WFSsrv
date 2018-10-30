@@ -214,7 +214,7 @@ class WFSsrv(tornado.web.Application):
         def make_totalforces(self, telescope, forces, m1focus):
             log.debug("Making total forces plot...")
             self.application.figures['totalforces'] = telescope.plot_forces(forces, m1focus)
-            self.application.figures['totalforces'].set_label("Total M1 Actuator Forces")
+            self.application.figures['totalforces'].set_label("Unmasked M1 Actuator Forces")
             return 'totalforces'
 
         @run_on_executor
@@ -274,80 +274,85 @@ class WFSsrv(tornado.web.Application):
 
                     log.debug("Fitting wavefront...")
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
-                    log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
-                    self.application.figures['residuals'] = zresults['resid_plot']
-                    self.application.refresh_figure('residuals', self.application.figures['residuals'])
+                    if zresults['fit_report'].success:
+                        log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
+                        self.application.figures['residuals'] = zresults['resid_plot']
+                        self.application.refresh_figure('residuals', self.application.figures['residuals'])
 
-                    zvec = zresults['zernike']
-                    zvec_raw = zresults['rot_zernike']
-                    zvec_ref = zresults['ref_zernike']
+                        zvec = zresults['zernike']
+                        zvec_raw = zresults['rot_zernike']
+                        zvec_ref = zresults['ref_zernike']
+                        self.application.wavefront_fit = zvec.copy()
+                        self.async_plot(self.make_psf, zvec.copy(), tel)
+                        self.async_plot(self.make_wfmap, zvec.copy())
 
-                    self.async_plot(self.make_psf, zvec.copy(), tel)
-                    self.async_plot(self.make_wfmap, zvec.copy())
+                        m1gain = self.application.wfs.m1_gain
 
-                    m1gain = self.application.wfs.m1_gain
+                        # this is the total if we try to correct everything as fit
+                        totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec.copy(), gain=m1gain)
 
-                    # this is the total if we try to correct everything as fit
-                    totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec, gain=m1gain)
+                        self.async_plot(self.make_barchart, zvec.copy(), zresults['zernike_rms'], zresults['residual_rms'])
+                        self.async_plot(self.make_totalforces, tel, totforces, totm1focus)
 
-                    self.async_plot(self.make_barchart, zvec.copy(), zresults['zernike_rms'], zresults['residual_rms'])
-                    self.async_plot(self.make_totalforces, tel, totforces, totm1focus)
+                        log.debug("Saving files and calculating corrections...")
+                        zvec_file = self.application.datadir / (filename + ".zernike")
+                        zvec_raw_file = self.application.datadir / (filename + ".raw.zernike")
+                        zvec_ref_file = self.application.datadir / (filename + ".ref.zernike")
+                        zvec.save(filename=zvec_file)
+                        zvec_raw.save(filename=zvec_raw_file)
+                        zvec_ref.save(filename=zvec_ref_file)
 
-                    log.debug("Saving files and calculating corrections...")
-                    zvec_file = self.application.datadir / (filename + ".zernike")
-                    zvec_raw_file = self.application.datadir / (filename + ".raw.zernike")
-                    zvec_ref_file = self.application.datadir / (filename + ".ref.zernike")
-                    zvec.save(filename=zvec_file)
-                    zvec_raw.save(filename=zvec_raw_file)
-                    zvec_ref.save(filename=zvec_ref_file)
-                    self.application.wavefront_fit = zvec
+                        # check the RMS of the wavefront fit and only apply corrections if the fit is good enough.
+                        # M2 can be more lenient to take care of large amounts of focus or coma.
+                        if zresults['residual_rms'] < 4000 * u.nm:
+                            self.application.has_pending_m1 = True
+                            self.application.has_pending_coma = True
+                            self.application.has_pending_focus = True
+                            log.info(f"{filename}: all proposed corrections valid.")
+                        elif zresults['residual_rms'] <= 7000 * u.nm:
+                            self.application.has_pending_focus = True
+                            log.warning(f"{filename}: only focus corrections valid.")
+                        elif zresults['residual_rms'] > 7000 * u.nm:
+                            log.error(f"{filename}: wavefront fit too poor; no valid corrections")
 
-                    # check the RMS of the wavefront fit and only apply corrections if the fit is good enough.
-                    # M2 can be more lenient to take care of large amounts of focus or coma.
-                    if zresults['residual_rms'] < 450 * u.nm:
-                        self.application.has_pending_m1 = True
-                        self.application.has_pending_coma = True
-                        self.application.has_pending_focus = True
-                        log.info(f"{filename}: all proposed corrections valid.")
-                    elif zresults['residual_rms'] <= 800 * u.nm:
-                        self.application.has_pending_focus = True
-                        log.warning(f"{filename}: only focus corrections valid.")
-                    elif zresults['residual_rms'] > 800 * u.nm:
-                        log.error(f"{filename}: wavefront fit too poor; no valid corrections")
+                        self.application.has_pending_recenter = True
 
-                    self.application.has_pending_recenter = True
+                        self.application.pending_focus = self.application.wfs.calculate_focus(zvec.copy())
 
-                    self.application.pending_focus = self.application.wfs.calculate_focus(zvec)
-
-                    # only allow M1 corrections if we are reasonably close to good focus...
-                    if self.application.pending_focus > 150 * u.um:
-                        self.application.has_pending_m1 = False
+                        # only allow M1 corrections if we are reasonably close to good focus...
+                        if self.application.pending_focus > 150 * u.um:
+                            self.application.has_pending_m1 = False
 
 
-                    self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec)
-                    self.async_plot(
-                        self.make_fringebarchart,
-                        zvec.copy(),
-                        self.application.pending_focus,
-                        self.application.pending_cc_x,
-                        self.application.pending_cc_y
-                    )
+                        self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec.copy())
+                        self.async_plot(
+                            self.make_fringebarchart,
+                            zvec.copy(),
+                            self.application.pending_focus,
+                            self.application.pending_cc_x,
+                            self.application.pending_cc_y
+                        )
+                        log.debug("Calculating pending forces...")
+                        self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
+                        self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
+                            self.application.wfs.calculate_primary(zvec.copy(), mask=spher_mask)
+                        self.application.pending_forcefile = self.application.datadir / (filename + ".forces")
+                        zvec_masked_file = self.application.datadir / (filename + ".masked.zernike")
+                        zv_masked.save(filename=zvec_masked_file)
+                        limit = np.round(np.abs(self.application.pending_forces['force']).max())
 
-                    log.debug("Calculating pending forces...")
-                    self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
-                    self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
-                        self.application.wfs.calculate_primary(zvec, threshold=0.5*zresults['residual_rms'], mask=spher_mask)
-                    self.application.pending_forcefile = self.application.datadir / (filename + ".forces")
-                    zvec_masked_file = self.application.datadir / (filename + ".masked.zernike")
-                    zv_masked.save(filename=zvec_masked_file)
-                    limit = np.round(np.abs(self.application.pending_forces['force']).max())
-                    self.async_plot(
-                        self.make_pendingforces,
-                        tel,
-                        self.application.pending_forces,
-                        self.application.pending_m1focus,
-                        limit
-                    )
+                        self.async_plot(
+                            self.make_pendingforces,
+                            tel,
+                            self.application.pending_forces,
+                            self.application.pending_m1focus,
+                            limit
+                        )
+                    else:
+                        log.error(f"Wavefront fit failed: {filename}")
+                        figures = create_default_figures()
+                        figures['slopes'] = results['figures']['slopes']
+                        self.application.refresh_figures(figures=figures)
                 else:
                     log.error(f"Wavefront measurement failed: {filename}")
                     figures = create_default_figures()
@@ -357,7 +362,6 @@ class WFSsrv(tornado.web.Application):
             else:
                 log.error(f"No such file: {filename}")
 
-            self.application.wavefront_fit.denormalize()
             self.write(json.dumps(self.application.wavefront_fit.pretty_print()))
             self.application.busy = False
             self.finish()
@@ -534,7 +538,6 @@ class WFSsrv(tornado.web.Application):
 
     class ZernikeFitHandler(tornado.web.RequestHandler):
         def get(self):
-            self.application.wavefront_fit.denormalize()
             self.write(json.dumps(self.application.wavefront_fit.pretty_print()))
             self.finish()
 
