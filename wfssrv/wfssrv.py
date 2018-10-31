@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+# coding=utf-8
 
 """
 MMT WFS Server
@@ -102,7 +103,7 @@ class WFSsrv(tornado.web.Application):
                 if wfs in self.application.wfs_keys:
                     log.info(f"Setting {wfs}")
                     self.application.wfs = self.application.wfs_systems[wfs]
-            except:
+            except Exception as e:
                 log.warning(f"Must specify valid wfs: {wfs}.")
             finally:
                 self.finish()
@@ -236,7 +237,7 @@ class WFSsrv(tornado.web.Application):
             try:
                 filename = self.get_argument("fitsfile")
                 log.info(f"Analyzing {filename}...")
-            except:
+            except Exception as e:
                 log.warning("no wfs or file specified.")
 
             mode = self.get_argument("mode", default=None)
@@ -322,7 +323,6 @@ class WFSsrv(tornado.web.Application):
                         # only allow M1 corrections if we are reasonably close to good focus...
                         if self.application.pending_focus > 150 * u.um:
                             self.application.has_pending_m1 = False
-
 
                         self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec.copy())
                         self.async_plot(
@@ -443,7 +443,7 @@ class WFSsrv(tornado.web.Application):
                 wfs = self.get_argument('wfs')
                 self.application.restart_wfs(wfs)
                 log.info(f"restarting {wfs}")
-            except:
+            except Exception as e:
                 log.info("no wfs specified")
             finally:
                 self.finish()
@@ -455,7 +455,7 @@ class WFSsrv(tornado.web.Application):
                 if os.path.isdir(datadir):
                     log.info(f"setting datadir to {datadir}")
                     self.application.datadir = pathlib.Path(datadir)
-            except:
+            except Exception as e:
                 log.info("no datadir specified")
             finally:
                 self.finish()
