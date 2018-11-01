@@ -65,9 +65,6 @@ def create_default_figures():
     figures['residuals'].set_label("Zernike Fit Residuals")
     ax['residuals'].imshow(data, cmap='Greys', origin='lower', interpolation='None')
 
-    # stub for zernike wavefront map
-    figures['wavefront'] = zv.plot_map()
-
     # stub for zernike bar chart
     figures['barchart'] = zv.bar_chart()
 
@@ -81,9 +78,6 @@ def create_default_figures():
     # stubs for mirror forces
     figures['totalforces'] = tel.plot_forces(forces)
     figures['totalforces'].set_label("Total M1 Actuator Forces")
-
-    # stub for psf
-    psf, figures['psf'] = tel.psf(zv=zv)
 
     return figures
 
@@ -175,25 +169,12 @@ class WFSsrv(tornado.web.Application):
             self.complete_refresh(k)
 
         @run_on_executor
-        def make_psf(self, zernikes, telescope):
-            log.debug("Making PSF image...")
-            psf, self.application.figures['psf'] = telescope.psf(zv=zernikes.copy())
-            return 'psf'
-
-        @run_on_executor
-        def make_wfmap(self, zernikes):
-            log.debug("Making wavefront map...")
-            self.application.figures['wavefront'] = zernikes.plot_map()
-            return 'wavefront'
-
-        @run_on_executor
         def make_barchart(self, zernikes, zrms, residual):
             log.debug("Making bar chart...")
-            rms_asec = zrms.value / self.application.wfs.tiltfactor * u.arcsec
+            waves = zrms.value / 550.0
             self.application.figures['barchart'] = zernikes.bar_chart(
-                last_mode=21,
                 residual=residual,
-                title=f"Total Wavefront RMS: {zrms.round(1)} ({rms_asec.round(2)})"
+                title=f"Total Wavefront RMS: {zrms.round(1)} ({np.round(waves, 2)} waves)"
             )
             return 'barchart'
 
@@ -207,7 +188,6 @@ class WFSsrv(tornado.web.Application):
                     cc_y,
                 ),
                 max_c=1500*u.nm,
-                last_mode=21
             )
             return 'fringebarchart'
 
@@ -284,8 +264,6 @@ class WFSsrv(tornado.web.Application):
                         zvec_raw = zresults['rot_zernike']
                         zvec_ref = zresults['ref_zernike']
                         self.application.wavefront_fit = zvec.copy()
-                        self.async_plot(self.make_psf, zvec.copy(), tel)
-                        self.async_plot(self.make_wfmap, zvec.copy())
 
                         m1gain = self.application.wfs.m1_gain
 
