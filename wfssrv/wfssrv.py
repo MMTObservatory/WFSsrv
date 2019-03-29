@@ -28,6 +28,7 @@ import tornado.gen
 import tornado.ioloop
 import tornado.websocket
 from tornado.process import Subprocess
+from tornado.iostream import StreamClosedError
 from tornado.concurrent import run_on_executor
 from tornado.log import enable_pretty_logging
 from concurrent.futures import ThreadPoolExecutor
@@ -587,23 +588,39 @@ class WFSsrv(tornado.web.Application):
         A websocket for streaming log messages from log file to the browser.
         """
         def open(self):
+            if hasattr(self, 'set_nodelay'):
+                self.set_nodelay(False)
             filename = self.application.logfile
             self.proc = Subprocess(["tail", "-f", "-n", "0", filename],
                                    stdout=Subprocess.STREAM,
+                                   stdin=Subprocess.STREAM,
+                                   stderr=Subprocess.STREAM,
                                    bufsize=1)
             self.proc.set_exit_callback(self._close)
-            self.proc.stdout.read_until(b"\n", self.write_line)
+            tornado.ioloop.IOLoop.current().spawn_callback(self.stream_output)
 
-        def _close(self, *args, **kwargs):
+        def _close(self, code):
+            log.info(f"Log streaming process exited with code {code}...")
             self.close()
 
+        def on_message(self, message):
+            log.info(f"Received {message} from client...")
+
         def on_close(self, *args, **kwargs):
-            log.info("Trying to kill log streaming process...")
+            log.info("Log streaming closed, cleaning up streaming process...")
             self.proc.proc.terminate()
             self.proc.proc.wait()
 
-        def write_line(self, data):
-            html = data.decode()
+        @tornado.gen.coroutine
+        def stream_output(self):
+            try:
+                while True:
+                    line = yield self.proc.stdout.read_until(b"\n")
+                    self.write_line(line.decode('utf-8'))
+            except StreamClosedError:
+                pass
+
+        def write_line(self, html):
             if "WARNING" in html:
                 color = "text-warning"
             elif "ERROR" in html:
@@ -613,8 +630,7 @@ class WFSsrv(tornado.web.Application):
             if "tornado.access" not in html and "poppy" not in html and "DEBUG" not in html:
                 html = "<samp><span class=%s>%s</span></samp>" % (color, html)
                 html += "<script>$(\"#log\").scrollTop($(\"#log\")[0].scrollHeight);</script>"
-                self.write_message(html.encode())
-            self.proc.stdout.read_until(b"\n", self.write_line)
+                self.write_message(html.encode('utf-8'))
 
     class WebSocket(tornado.websocket.WebSocketHandler):
         """
