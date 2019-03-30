@@ -74,9 +74,9 @@ matrix:
         #  env: SETUP_CMD='build_docs -w'
 
         # Now try Astropy dev latest 3.x...
-        - os: linux
-          env: ASTROPY_VERSION=development
-               EVENT_TYPE='pull_request push cron'
+        # - os: linux
+        #   env: ASTROPY_VERSION=development
+        #        EVENT_TYPE='pull_request push cron'
 
     allow_failures:
         # Do a PEP8 test with pycodestyle
