@@ -85,7 +85,6 @@ matrix:
           env: MAIN_CMD='pycodestyle wfssrv --count' SETUP_CMD=''
 
 install:
-
     # We now use the ci-helpers package to set up our testing environment.
     # This is done by using Miniconda and then using conda and pip to install
     # dependencies. Which dependencies are installed using conda and pip is
