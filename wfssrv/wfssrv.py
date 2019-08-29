@@ -779,6 +779,7 @@ class WFSsrv(tornado.web.Application):
         self.wfs_names = {}
         for w in self.wfs_keys:
             self.wfs_systems[w] = WFSFactory(wfs=w)
+            self.wfs_systems[w].nzern = 10  # hard-code this for now, but should be configurable/settable
             self.wfs_names[w] = self.wfs_systems[w].name
 
         self.busy = False
