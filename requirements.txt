@@ -1,0 +1,8 @@
+tornado
+git+https://github.com/MMTObservatory/mmtwfs.git#egg=mmtwfs
+pytest
+pytest-astropy
+nose
+coverage
+codecov
+sphinx-astropy
