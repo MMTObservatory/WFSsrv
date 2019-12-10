@@ -4,8 +4,9 @@ MAINTAINER T. E. Pickering "te.pickering@gmail.com"
 
 COPY . .
 
-RUN pip install -r requirements.txt
-RUN python setup.py install
+RUN pip install redis
+
+RUN python setup.py develop
 
 EXPOSE 8080
 
