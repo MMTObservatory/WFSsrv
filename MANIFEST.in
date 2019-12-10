@@ -12,6 +12,9 @@ recursive-include licenses *
 recursive-include cextern *
 recursive-include scripts *
 
+recursive-include wfssrv/static *
+recursive-include wfssrv/templates *
+
 prune build
 prune docs/_build
 prune docs/api
