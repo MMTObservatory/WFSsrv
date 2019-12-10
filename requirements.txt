@@ -6,3 +6,4 @@ nose
 coverage
 codecov
 sphinx-astropy
+redis

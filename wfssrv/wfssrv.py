@@ -832,7 +832,7 @@ class WFSsrv(tornado.web.Application):
         super(WFSsrv, self).__init__(handlers, **settings)
 
 
-if __name__ == "__main__":
+def main():
     application = WFSsrv()
 
     http_server = tornado.httpserver.HTTPServer(application)
@@ -842,3 +842,7 @@ if __name__ == "__main__":
     print("Press Ctrl+C to quit")
 
     tornado.ioloop.IOLoop.instance().start()
+
+
+if __name__ == "__main__":
+    main()

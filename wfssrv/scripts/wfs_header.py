@@ -6,7 +6,7 @@ from astropy.io import fits
 from camsrv.header import update_header
 
 
-if __name__ == "__main__":
+def main():
     filename = sys.argv[1]
     hdu = fits.open(filename)
     newhdu = update_header(hdu)
@@ -48,3 +48,7 @@ if __name__ == "__main__":
     newhdu.writeto(filename, overwrite=True, output_verify="silentfix")
 
     print(inst)
+
+
+if __name__ == "__main__":
+    main()
