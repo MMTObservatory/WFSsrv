@@ -1,0 +1,3 @@
+#!/bin/sh
+
+docker run -ti --rm -p 8080:8080 -v $HOME/MMT/wfsdat/test:/wfsdat -e REDISHOST=localhost mmtobservatory/wfssrv:latest
