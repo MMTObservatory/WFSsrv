@@ -1,7 +1,6 @@
-include README.rst
-include CHANGES.rst
-
-include ez_setup.py
+include README.md
+include LICENSE.rst
+include requirements.txt
 include ah_bootstrap.py
 include setup.cfg
 include wfssrv/tests/coveragerc
@@ -18,7 +17,6 @@ recursive-include wfssrv/templates *
 prune build
 prune docs/_build
 prune docs/api
-
 
 # the next few stanzas are for astropy_helpers.  It's derived from the
 # astropy_helpers/MANIFEST.in, but requires additional includes for the actual
@@ -39,6 +37,5 @@ recursive-include astropy_helpers/astropy_helpers/sphinx *
 
 prune astropy_helpers/build
 prune astropy_helpers/astropy_helpers/tests
-
 
 global-exclude *.pyc *.o
