@@ -226,11 +226,11 @@ class WFSsrv(tornado.web.Application):
             spher = self.get_argument("spher", default=False)
 
             if spher == "true":
-                spher_mask = ['Z11', 'Z22']
-                log.info(f"Ignoring all spherical terms {spher_mask}...")
+                spher_mask = ['Z11']
+                log.info(f"Excluding spherical aberration from M1 force calculations...")
             else:
-                spher_mask = ['Z22']
-                log.info(f"Only ignoring the high-order spherical terms {spher_mask}...")
+                spher_mask = []
+                log.info(f"Including spherical aberration in M1 force calculations...")
 
             if os.path.isfile(filename) and not self.application.busy:
                 self.application.busy = True
@@ -779,6 +779,7 @@ class WFSsrv(tornado.web.Application):
         self.wfs_names = {}
         for w in self.wfs_keys:
             self.wfs_systems[w] = WFSFactory(wfs=w)
+            self.wfs_systems[w].nzern = 10  # hard-code this for now, but should be configurable/settable
             self.wfs_names[w] = self.wfs_systems[w].name
 
         self.busy = False
