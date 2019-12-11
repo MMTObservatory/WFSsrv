@@ -794,7 +794,11 @@ class WFSsrv(tornado.web.Application):
         self.refresh_figures()
         self.wavefront_fit = ZernikeVector(Z04=1)
 
-        self.redis_server = redis.StrictRedis(host='localhost', port=6379, db=0)
+        if 'REDISHOST' in os.environ:
+            redis_host = os.environ['REDISHOST']
+        else:
+            redis_host = 'localhost'
+        self.redis_server = redis.StrictRedis(host=redis_host, port=6379, db=0)
 
         handlers = [
             (r"/", self.HomeHandler),
@@ -833,7 +837,7 @@ class WFSsrv(tornado.web.Application):
         super(WFSsrv, self).__init__(handlers, **settings)
 
 
-if __name__ == "__main__":
+def main():
     application = WFSsrv()
 
     http_server = tornado.httpserver.HTTPServer(application)
@@ -843,3 +847,7 @@ if __name__ == "__main__":
     print("Press Ctrl+C to quit")
 
     tornado.ioloop.IOLoop.instance().start()
+
+
+if __name__ == "__main__":
+    main()
