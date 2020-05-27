@@ -48,6 +48,7 @@ develop-eggs
 distribute-*.tar.gz
 
 # Other
+.vscode/
 .cache
 .tox
 .*.sw[op]
