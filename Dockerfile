@@ -2,11 +2,10 @@ FROM mmtobservatory/mmtwfs:latest
 
 MAINTAINER T. E. Pickering "te.pickering@gmail.com"
 
-RUN pip install redis
-
 COPY . .
 
-RUN python setup.py develop
+RUN pip install git+https://github.com/MMTObservatory/camsrv.git#egg=camsrv
+RUN pip install -e [all]
 
 EXPOSE 8080
 
