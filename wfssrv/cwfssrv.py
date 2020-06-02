@@ -9,8 +9,6 @@ To get curvature wfs data via binospec single-object guider do the following via
 
 1 sub curvature_files
 """
-
-import sys
 import io
 import os
 import json
@@ -40,12 +38,10 @@ from mmtwfs.wfs import WFSFactory, center_pupil
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
-sys.path.append("/mmt/cwfs/python")
-sys.path.append("/Users/tim/src/cwfs/python")
-from lsst.cwfs.instrument import Instrument  # noqa
-from lsst.cwfs.algorithm import Algorithm  # noqa
-from lsst.cwfs.image import Image, readFile  # noqa
-from lsst.cwfs.tools import outParam, outZer4Up  # noqa
+from cwfs.instrument import Instrument
+from cwfs.algorithm import Algorithm
+from cwfs.image import Image, readFile
+from cwfs.tools import outParam, outZer4Up
 
 matplotlib.use('webagg')
 glog = logging.getLogger('')
