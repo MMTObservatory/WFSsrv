@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-import numpy as np
 from astropy.io import fits
 from camsrv.header import update_header
 
