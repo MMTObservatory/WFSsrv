@@ -227,10 +227,10 @@ class WFSsrv(tornado.web.Application):
 
             if spher == "true":
                 spher_mask = ['Z11', 'Z22']
-                log.info(f"Ignoring all spherical terms {spher_mask}...")
+                log.info(f"Ignoring all spherical terms {str(spher_mask)}...")
             else:
                 spher_mask = ['Z22']
-                log.info(f"Only ignoring the high-order spherical terms {spher_mask}...")
+                log.info(f"Only ignoring the high-order spherical terms {str(spher_mask)}...")
 
             if os.path.isfile(filename) and not self.application.busy:
                 self.application.busy = True
