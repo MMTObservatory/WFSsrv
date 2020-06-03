@@ -9,8 +9,6 @@ To get curvature wfs data via binospec single-object guider do the following via
 
 1 sub curvature_files
 """
-
-import sys
 import io
 import os
 import json
@@ -24,10 +22,7 @@ from astropy.io import fits
 import logging
 import logging.handlers
 
-try:
-    import tornado
-except ImportError:
-    raise RuntimeError("This server requires tornado.")
+import tornado
 import tornado.web
 import tornado.httpserver
 import tornado.ioloop
@@ -36,7 +31,6 @@ from tornado.process import Subprocess
 from tornado.log import enable_pretty_logging
 
 import matplotlib
-matplotlib.use('webagg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new_figure_manager_given_figure)
 
@@ -44,13 +38,12 @@ from mmtwfs.wfs import WFSFactory, center_pupil
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
-sys.path.append("/mmt/cwfs/python")
-sys.path.append("/Users/tim/src/cwfs/python")
-from lsst.cwfs.instrument import Instrument
-from lsst.cwfs.algorithm import Algorithm
-from lsst.cwfs.image import Image, readFile
-from lsst.cwfs.tools import outParam, outZer4Up
+from cwfs.instrument import Instrument
+from cwfs.algorithm import Algorithm
+from cwfs.image import Image, readFile
+from cwfs.tools import outParam, outZer4Up
 
+matplotlib.use('webagg')
 glog = logging.getLogger('')
 log = logging.getLogger('CWFSsrv')
 log.setLevel(logging.INFO)
@@ -156,12 +149,11 @@ class WFSsrv(tornado.web.Application):
                 filename1 = self.get_argument("fitsfile1")
                 filename2 = self.get_argument("fitsfile2")
                 log.info(f"Analyzing {filename1} and {filename2}...")
-            except:
-                log.warning("No or not enough CWFS files specified.")
+            except Exception as e:
+                log.warning(f"No or not enough CWFS files specified. ({e.__class__})")
 
             connect = self.get_argument("connect", default=True)
             spher = self.get_argument("spher", default=False)
-            model = self.get_argument("model", default="onAxis")
             thresh = self.get_argument("thresh", default=150.0)
             thresh = float(thresh) * u.nm
             focoff = self.get_argument("focoff", default=1000.0)
@@ -289,14 +281,14 @@ class WFSsrv(tornado.web.Application):
                 figures['intra'].set_label("Intra-focal Image")
                 im1 = ax['intra'].imshow(I1.image, cmap='Greys', origin='lower', interpolation='None')
                 ax['intra'].set_title(intra_file)
-                cbar1 = figures['intra'].colorbar(im1)
+                figures['intra'].colorbar(im1)
 
                 # show extra-focal image
                 figures['extra'], ax['extra'] = plt.subplots()
                 figures['extra'].set_label("Extra-focal Image")
                 im2 = ax['extra'].imshow(I2.image, cmap='Greys', origin='lower', interpolation='None')
                 ax['extra'].set_title(extra_file)
-                cbar2 = figures['extra'].colorbar(im2)
+                figures['extra'].colorbar(im2)
 
                 # show wavefront map
                 figures['wavefront'], ax['wavefront'] = plt.subplots()
@@ -433,8 +425,8 @@ class WFSsrv(tornado.web.Application):
                 wfs = self.get_argument('wfs')
                 self.application.restart_wfs(wfs)
                 log.info(f"restarting {wfs}")
-            except:
-                log.info("no wfs specified")
+            except Exception:
+                log.info("No wfs specified.")
             finally:
                 self.finish()
 
@@ -445,8 +437,8 @@ class WFSsrv(tornado.web.Application):
                 if os.path.isdir(datadir):
                     log.info(f"setting datadir to {datadir}")
                     self.application.datadir = pathlib.Path(datadir)
-            except:
-                log.info("no datadir specified")
+            except Exception:
+                log.info("No datadir specified.")
             finally:
                 self.finish()
 
@@ -513,7 +505,7 @@ class WFSsrv(tornado.web.Application):
             p = self.application.datadir
             try:
                 fullfiles = sorted(p.glob("sog*_*.fits"), key=lambda x: x.stat().st_mtime)
-            except PermissionError as e:
+            except PermissionError:
                 # started getting weird permission errors on hacksaw that looks like NFS race bug.
                 # running 'ls' in the directory clears the error...
                 log.warning(f"Permission error while listing files in {p}...")

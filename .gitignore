@@ -46,8 +46,11 @@ sdist
 develop-eggs
 .installed.cfg
 distribute-*.tar.gz
+pip-wheel-metadata/
+.eggs/
 
 # Other
+.vscode/
 .cache
 .tox
 .*.sw[op]

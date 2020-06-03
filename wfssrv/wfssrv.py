@@ -34,7 +34,6 @@ from tornado.log import enable_pretty_logging
 from concurrent.futures import ThreadPoolExecutor
 
 import matplotlib
-matplotlib.use('webagg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new_figure_manager_given_figure)
 
@@ -43,6 +42,7 @@ from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
 
+matplotlib.use('webagg')
 glog = logging.getLogger('')
 log = logging.getLogger('WFSsrv')
 log.setLevel(logging.DEBUG)
@@ -99,7 +99,7 @@ class WFSsrv(tornado.web.Application):
                     log.info(f"Setting {wfs}")
                     self.application.wfs = self.application.wfs_systems[wfs]
             except Exception as e:
-                log.warning(f"Must specify valid wfs: {wfs}.")
+                log.warning(f"Must specify valid wfs: {wfs}. ({e.__class__})")
             finally:
                 self.finish()
 
@@ -219,7 +219,7 @@ class WFSsrv(tornado.web.Application):
                 filename = self.get_argument("fitsfile")
                 log.info(f"Analyzing {filename}...")
             except Exception as e:
-                log.warning("no wfs or file specified.")
+                log.warning(f"No wfs or file specified. ({e.__class__})")
 
             mode = self.get_argument("mode", default=None)
             connect = self.get_argument("connect", default=True)
@@ -227,10 +227,10 @@ class WFSsrv(tornado.web.Application):
 
             if spher == "true":
                 spher_mask = ['Z11', 'Z22']
-                log.info(f"Ignoring all spherical terms {spher_mask}...")
+                log.info(f"Ignoring all spherical terms {str(spher_mask)}...")
             else:
                 spher_mask = ['Z22']
-                log.info(f"Only ignoring the high-order spherical terms {spher_mask}...")
+                log.info(f"Only ignoring the high-order spherical terms {str(spher_mask)}...")
 
             if os.path.isfile(filename) and not self.application.busy:
                 self.application.busy = True
@@ -423,7 +423,7 @@ class WFSsrv(tornado.web.Application):
                 self.application.restart_wfs(wfs)
                 log.info(f"restarting {wfs}")
             except Exception as e:
-                log.info("no wfs specified")
+                log.info(f"No wfs specified. ({e.__class__})")
             finally:
                 self.finish()
 
@@ -435,7 +435,7 @@ class WFSsrv(tornado.web.Application):
                     log.info(f"setting datadir to {datadir}")
                     self.application.datadir = pathlib.Path(datadir)
             except Exception as e:
-                log.info("no datadir specified")
+                log.info(f"No datadir specified. ({e.__class__})")
             finally:
                 self.finish()
 
@@ -505,7 +505,7 @@ class WFSsrv(tornado.web.Application):
             except PermissionError as e:
                 # started getting weird permission errors on hacksaw that looks like NFS race bug.
                 # running 'ls' in the directory clears the error...
-                log.warning(f"Permission error while listing files in {p}...")
+                log.warning(f"Permission error, {e.__class__}, while listing files in {p}...")
                 os.system(f"ls {p} > /dev/null")
                 fullfiles = []
             files = []
@@ -779,6 +779,7 @@ class WFSsrv(tornado.web.Application):
         self.wfs_names = {}
         for w in self.wfs_keys:
             self.wfs_systems[w] = WFSFactory(wfs=w)
+            self.wfs_systems[w].nzern = 10  # hard-code this for now, but should be configurable/settable
             self.wfs_names[w] = self.wfs_systems[w].name
 
         self.busy = False
