@@ -751,10 +751,8 @@ class WFSsrv(tornado.web.Application):
     def __init__(self):
         if 'WFSROOT' in os.environ:
             self.datadir = pathlib.Path(os.environ['WFSROOT'])
-        elif 'HOME' in os.environ:
-            self.datadir = pathlib.Path(os.environ['HOME']) / "wfsdat"
         else:
-            self.datadir = pathlib.Path("wfsdat")
+            self.datadir = pathlib.Path.cwd()
 
         if not self.datadir.exists():
             self.datadir.mkdir(parents=True)
