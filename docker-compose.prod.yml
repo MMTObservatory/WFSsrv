@@ -1,0 +1,12 @@
+version: '3.4'
+
+services:
+    wfssrv:
+        volumes:
+            - /home/mmtop/wfsdat:/wfsdat
+    cwfssrv:
+        volumes:
+            - /home/mmtop/wfsdat:/wfsdat
+    saosrv:
+        volumes:
+            - /home/mmtop/wfsdat:/wfsdat
