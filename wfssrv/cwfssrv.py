@@ -691,7 +691,7 @@ class WFSsrv(tornado.web.Application):
         if 'CWFSROOT' in os.environ:
             self.datadir = pathlib.Path(os.environ['CWFSROOT'])
         else:
-            self.datadir = pathlib.Path("/mmt/shwfs/datadir")
+            self.datadir = pathlib.Path("/wfsdat")
 
         if os.path.isdir(self.datadir):
             self.logfile = self.datadir / "cwfs.log"
@@ -751,7 +751,7 @@ class WFSsrv(tornado.web.Application):
         super(WFSsrv, self).__init__(handlers, **settings)
 
 
-if __name__ == "__main__":
+def main():
     application = WFSsrv()
 
     http_server = tornado.httpserver.HTTPServer(application)
@@ -761,3 +761,7 @@ if __name__ == "__main__":
     print("Press Ctrl+C to quit")
 
     tornado.ioloop.IOLoop.instance().start()
+
+
+if __name__ == "__main__":
+    main()
