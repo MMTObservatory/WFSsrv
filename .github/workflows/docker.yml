@@ -11,8 +11,9 @@ jobs:
     - name: checkout
       uses: actions/checkout@v2
     - name: Publish to Registry
-      uses: elgohr/Publish-Docker-Github-Action@master
+      uses: docker/build-push-action@v1
       with:
-        name: mmtobservatory/wfssrv
+        repository: mmtobservatory/wfssrv
         username: ${{ secrets.DOCKER_USER }}
         password: ${{ secrets.DOCKER_TOKEN }}
+        tags: master

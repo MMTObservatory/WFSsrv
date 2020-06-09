@@ -2,14 +2,14 @@ version: '3.4'
 
 services:
     wfssrv:
-        image: mmtobservatory/mmtwfs:latest
+        image: mmtobservatory/mmtwfs:master
         volumes:
             - /home/mmtop/wfsdat:/wfsdat
     cwfssrv:
-        image: mmtobservatory/mmtwfs:latest
+        image: mmtobservatory/mmtwfs:master
         volumes:
             - /home/mmtop/wfsdat:/wfsdat
     saosrv:
-        image: mmtobservatory/mmtwfs:latest
+        image: mmtobservatory/mmtwfs:master
         volumes:
             - /home/mmtop/wfsdat:/wfsdat
