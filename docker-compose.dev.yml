@@ -2,11 +2,14 @@ version: '3.4'
 
 services:
     wfssrv:
+        build: .
         volumes:
             - ${WFSDAT}:/wfsdat
     cwfssrv:
+        build: .
         volumes:
             - ${WFSDAT}:/wfsdat
     saosrv:
+        build: .
         volumes:
             - ${WFSDAT}:/wfsdat

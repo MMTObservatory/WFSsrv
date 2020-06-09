@@ -2,23 +2,14 @@ version: '3.4'
 
 services:
     wfssrv:
-        build: .
-        volumes:
-            - .:/wfsdat
         ports:
             - 8080:8080
         command: ["wfssrv"]
     cwfssrv:
-        build: .
-        volumes:
-            - .:/wfsdat
         ports:
             - 8081:8081
         command: ["cwfssrv"]
     saosrv:
-        build: .
-        volumes:
-            - .:/wfsdat
         ports:
             - 9876:9876
         command: ["/usr/bin/tclsh", "scripts/sao-wfs-server"]
