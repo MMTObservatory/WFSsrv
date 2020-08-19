@@ -795,7 +795,7 @@ class WFSsrv(tornado.web.Application):
         if 'REDISHOST' in os.environ:
             redis_host = os.environ['REDISHOST']
         else:
-            redis_host = 'localhost'
+            redis_host = 'redis.mmto.arizona.edu'
         self.redis_server = redis.StrictRedis(host=redis_host, port=6379, db=0)
 
         handlers = [
