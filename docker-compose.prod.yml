@@ -2,14 +2,20 @@ version: '3.4'
 
 services:
     wfssrv:
+        environment:
+            - REDISHOST=redis.mmto.arizona.edu
         image: mmtobservatory/wfssrv:master
         volumes:
             - /home/mmtop/wfsdat:/wfsdat
     cwfssrv:
+        environment:
+            - REDISHOST=redis.mmto.arizona.edu
         image: mmtobservatory/wfssrv:master
         volumes:
             - /home/mmtop/wfsdat:/wfsdat
     saosrv:
+        environment:
+            - REDISHOST=redis.mmto.arizona.edu
         image: mmtobservatory/wfssrv:master
         volumes:
             - /home/mmtop/wfsdat:/wfsdat
