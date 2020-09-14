@@ -403,13 +403,18 @@ class WFSsrv(tornado.web.Application):
         def get(self):
             log.info("Recentering...")
             if self.application.has_pending_recenter and self.application.wfs.connected:
-                self.application.wfs.secondary.recenter(self.application.pending_az, self.application.pending_el)
+                # self.application.wfs.secondary.recenter(self.application.pending_az, self.application.pending_el)
                 self.application.has_pending_recenter = False
-                log_str = "Sending {0:0.1f}/{1:0.1f} of az/el to recenter...".format(
-                    self.application.pending_az,
-                    self.application.pending_el
+                # log_str = "Sending {0:0.1f}/{1:0.1f} of az/el to recenter...".format(
+                #    self.application.pending_az,
+                #    self.application.pending_el
+                # )
+                log_str = "Hexapod recentering disabled. "
+                log_str += "Please apply mount offsets of EL={0:0.1f}\" and AZ={1:0.1f}\"...".format(
+                    self.application.pending_el,
+                    self.application.pending_az
                 )
-                log.info(log_str)
+                log.warning(log_str)
                 self.write(log_str)
             else:
                 log.info("No M2 recenter corrections sent")
