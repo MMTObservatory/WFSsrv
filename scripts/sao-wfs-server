@@ -1,25 +1,15 @@
 #!/usr/bin/env tclsh
 
-package require dns
-
 # set up where the files go
 if {[info exists env(WFSROOT)]} {
-    set datadir [file join $env(WFSROOT) datadir]
+    set datadir $env(WFSROOT)
 } else {
-    set datadir /home/mmtop/wfsdat
+    set datadir /wfsdat
 }
 
-# set up where to find the script for updating the image headers
-if {[info exists env(CONDA_PREFIX)]} {
-    set header_script [file join $env(CONDA_PREFIX) bin wfs_header.py]
-} else {
-    set header_script /mmt/conda/bin/wfs_header.py
-}
+set header_script wfs_header.py
 
-# nominally the port should be 9876, but query for it via DNS to be sure and in case it gets moved
-set tok [dns::resolve _mmirs-wfs._tcp.mmto.arizona.edu -type SRV]
-set res [dns::result $tok]
-set service_port [lindex [lindex [lindex $res 0] 11] 5]
+set service_port 9876
 
 set mmirs_count 1
 set bino_count 1
