@@ -1,0 +1,15 @@
+version: '3.4'
+
+services:
+    wfssrv:
+        ports:
+            - 8080:8080
+        command: ["wfssrv"]
+    cwfssrv:
+        ports:
+            - 8081:8081
+        command: ["cwfssrv"]
+    saosrv:
+        ports:
+            - 9876:9876
+        command: ["/usr/bin/tclsh", "scripts/sao-wfs-server"]
