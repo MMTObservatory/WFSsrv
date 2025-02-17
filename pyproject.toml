@@ -1,7 +1,112 @@
-[build-system]
+[project]
+name = "wfssrv"
+dynamic = ["version"]
+authors = [
+    { name = "T. E. Pickering", email = "te.pickering@gmail.com"}
+]
+license = {file = "licenses/LICENSE.rst"}
+readme = "README.rst"
+description = "MMTO Wavefront Sensor Analysis Server"
+requires-python = ">=3.12"
+dependencies = [
+    "tornado",
+    "redis",
+    "matplotlib",
+    "camsrv@git+https://github.com/MMTObservatory/camsrv",
+    "mmtwfs@git+https://github.com/MMTObservatory/mmtwfs",
+]
 
-requires = ["setuptools",
-            "setuptools_scm",
-            "wheel"]
+[project.optional-dependencies]
+test = [
+    "tox",
+    "coverage",
+    "pytest-astropy",
+    "black",
+    "flake8",
+    "codecov",
+]
+docs = [
+    "sphinx-astropy",
+]
+
+[project.scripts]
+"wfs_header.py" = "wfssrv.scripts.wfs_header:main"
+wfssrv = "wfssrv.wfssrv:main"
+
+[project.urls]
+Repository = "https://github.com/mmtobservatory/wfssrv.git"
+Documentation = "https://wfssrv.readthedocs.io/"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"wfssrv.templates" = ["**"]
+"wfssrv.static" = ["**"]
+
+[tool.setuptools.packages]
+find = {}
+
+[tool.setuptools_scm]
+version_file = "wfssrv/version.py"
+
+[build-system]
+requires = [
+    "setuptools",
+    "setuptools_scm",
+]
 
 build-backend = 'setuptools.build_meta'
+
+[tool.pytest.ini_options]
+minversion = 7.0
+testpaths = [
+    "wfssrv/test",
+    "docs",
+]
+astropy_header = true
+doctest_plus = "enabled"
+text_file_format = "rst"
+addopts = [
+    "--color=yes",
+    "--doctest-rst",
+]
+xfail_strict = true
+filterwarnings = [
+    "error",
+    "ignore:numpy\\.ufunc size changed:RuntimeWarning",
+    "ignore:numpy\\.ndarray size changed:RuntimeWarning",
+    # Python 3.12 warning from dateutil imported by matplotlib
+    "ignore:.*utcfromtimestamp:DeprecationWarning",
+]
+
+[tool.coverage]
+
+    [tool.coverage.run]
+        omit = [
+            "wfssrv/_astropy_init*",
+            "wfssrv/conftest.py",
+            "wfssrv/tests/*",
+            "wfssrv/version*",
+            "*/wfssrv/_astropy_init*",
+            "*/wfssrv/conftest.py",
+            "*/wfssrv/tests/*",
+            "*/wfssrv/version*",
+        ]
+
+    [tool.coverage.report]
+        exclude_lines = [
+            # Have to re-enable the standard pragma
+            "pragma: no cover",
+            # Don't complain about packages we have installed
+            "except ImportError",
+            # Don't complain if tests don't hit defensive assertion code:
+            "raise AssertionError",
+            "raise NotImplementedError",
+            # Don't complain about script hooks
+            "'def main(.*):'",
+            # Ignore branches that don't pertain to this version of Python
+            "pragma: py{ignore_python_version}",
+            # Don't complain about IPython completion helper
+            "def _ipython_key_completions_",
+        ]
