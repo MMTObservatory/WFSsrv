@@ -13,7 +13,7 @@ if {[info exists env(WFSROOT)]} {
 if {[info exists env(CONDA_PREFIX)]} {
     set header_script [file join $env(CONDA_PREFIX) bin wfs_header.py]
 } else {
-    set header_script /mmt/conda/bin/wfs_header.py
+    set header_script /mmt/condaforge/envs/mmtwfs/bin/wfs_header.py
 }
 
 # nominally the port should be 9876, but query for it via DNS to be sure and in case it gets moved

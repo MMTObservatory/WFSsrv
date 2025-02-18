@@ -1,13 +1,9 @@
-FROM mmtobservatory/mmtwfs:latest
+FROM python:3.13
 
-MAINTAINER T. E. Pickering "te.pickering@gmail.com"
-
-COPY . .
+LABEL maintainer="te.pickering@gmail.com"
 
 RUN python -m pip install --upgrade pip
-RUN python -m pip install git+https://github.com/MMTObservatory/camsrv.git#egg=camsrv
-RUN python -m pip install git+https://github.com/MMTObservatory/cwfs.git#egg=cwfs
-RUN python -m pip install -e .[all]
+RUN python -m pip install -e .
 
 EXPOSE 8080
 
