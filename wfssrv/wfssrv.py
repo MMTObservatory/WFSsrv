@@ -242,9 +242,9 @@ class WFSsrv(tornado.web.Application):
                 log.debug("Measuring slopes...")
                 results = self.application.wfs.measure_slopes(filename, mode=mode, plot=True)
                 if results['slopes'] is not None:
-                    if 'seeing' in results:
-                        log.info(f"Seeing (zenith): {results['seeing'].round(2)}")
-                        log.info(f"Seeing (raw): {results['raw_seeing'].round(2)}")
+                    if 'vlt_seeing' in results:
+                        log.info(f"Seeing (zenith): {results['vlt_seeing'].round(2)}")
+                        log.info(f"Seeing (raw): {results['raw_vlt_seeing'].round(2)}")
                         if self.application.wfs.connected:
                             log.info("Publishing seeing values to redis.")
                             self.application.update_seeing(results)
@@ -742,14 +742,20 @@ class WFSsrv(tornado.web.Application):
 
     def update_seeing(self, results):
         try:
-            wfs_seeing = results['seeing'].round(2).value
-            wfs_raw_seeing = results['raw_seeing'].round(2).value
+            wfs_seeing = results['vlt_seeing'].round(2).value
+            wfs_raw_seeing = results['raw_vlt_seeing'].round(2).value
+            wfs_ellipticity = results['ellipticity'].round(3)
             r1 = self.set_redis('wfs_seeing', wfs_seeing)
             r2 = self.set_redis('wfs_raw_seeing', wfs_raw_seeing)
             if None not in r1 and None not in r2:
                 log.info(f"Set redis values wfs_seeing={wfs_seeing} and wfs_raw_seeing={wfs_raw_seeing}")
             else:
                 log.warning("Problem sending seeing values to redis...")
+            r3 = self.set_redis('wfs_ellipticity', wfs_ellipticity)
+            if None not in r3:
+                log.info(f"Set redis values wfs_ellipticity={wfs_ellipticity}")
+            else:
+                log.warning("Problem sending ellipticity value to redis...")
         except Exception as e:
             log.warning(f'Error connecting to MMTO API server... : {e}')
 
