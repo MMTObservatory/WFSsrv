@@ -61,8 +61,7 @@ build-backend = 'setuptools.build_meta'
 [tool.pytest.ini_options]
 minversion = 7.0
 testpaths = [
-    "wfssrv/test",
-    "docs",
+    "wfssrv/tests",
 ]
 astropy_header = true
 doctest_plus = "enabled"
@@ -76,8 +75,8 @@ filterwarnings = [
     "error",
     "ignore:numpy\\.ufunc size changed:RuntimeWarning",
     "ignore:numpy\\.ndarray size changed:RuntimeWarning",
-    # Python 3.12 warning from dateutil imported by matplotlib
-    "ignore:.*utcfromtimestamp:DeprecationWarning",
+    # weird no event loop deprecation warning
+    "ignore:.*There is no current event loop:DeprecationWarning",
 ]
 
 [tool.coverage]
