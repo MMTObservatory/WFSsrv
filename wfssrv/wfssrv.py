@@ -35,16 +35,19 @@ from concurrent.futures import ThreadPoolExecutor
 
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_webagg_core import (FigureCanvasWebAggCore, new_figure_manager_given_figure)
+from matplotlib.backends.backend_webagg_core import (
+    FigureCanvasWebAggCore,
+    new_figure_manager_given_figure,
+)
 
 from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
 
 
-matplotlib.use('webagg')
-glog = logging.getLogger('')
-log = logging.getLogger('WFSsrv')
+matplotlib.use("webagg")
+glog = logging.getLogger("")
+log = logging.getLogger("WFSsrv")
 log.setLevel(logging.DEBUG)
 
 
@@ -53,32 +56,34 @@ def create_default_figures():
     figures = {}
     ax = {}
     data = np.zeros((512, 512))
-    tel = MMT(secondary='f5')  # secondary doesn't matter, just need methods for mirror forces/plots
+    tel = MMT(
+        secondary="f5"
+    )  # secondary doesn't matter, just need methods for mirror forces/plots
     forces = tel.bending_forces(zv=zv)
 
     # stub for plot showing bkg-subtracted WFS image with aperture positions
-    figures['slopes'], ax['slopes'] = plt.subplots()
-    figures['slopes'].set_label("Aperture Positions and Spot Movement")
-    ax['slopes'].imshow(data, cmap='Greys', origin='lower', interpolation='None')
+    figures["slopes"], ax["slopes"] = plt.subplots()
+    figures["slopes"].set_label("Aperture Positions and Spot Movement")
+    ax["slopes"].imshow(data, cmap="Greys", origin="lower", interpolation="None")
 
     # stub for plot showing bkg-subtracted WFS image and residuals slopes of wavefront fit
-    figures['residuals'], ax['residuals'] = plt.subplots()
-    figures['residuals'].set_label("Zernike Fit Residuals")
-    ax['residuals'].imshow(data, cmap='Greys', origin='lower', interpolation='None')
+    figures["residuals"], ax["residuals"] = plt.subplots()
+    figures["residuals"].set_label("Zernike Fit Residuals")
+    ax["residuals"].imshow(data, cmap="Greys", origin="lower", interpolation="None")
 
     # stub for zernike bar chart
-    figures['barchart'] = zv.bar_chart()
+    figures["barchart"] = zv.bar_chart()
 
     # stub for zernike fringe bar chart
-    figures['fringebarchart'] = zv.fringe_bar_chart()
+    figures["fringebarchart"] = zv.fringe_bar_chart()
 
     # stubs for mirror forces
-    figures['forces'] = tel.plot_forces(forces)
-    figures['forces'].set_label("Requested M1 Actuator Forces")
+    figures["forces"] = tel.plot_forces(forces)
+    figures["forces"].set_label("Requested M1 Actuator Forces")
 
     # stubs for mirror forces
-    figures['totalforces'] = tel.plot_forces(forces)
-    figures['totalforces'].set_label("Total M1 Actuator Forces")
+    figures["totalforces"] = tel.plot_forces(forces)
+    figures["totalforces"].set_label("Total M1 Actuator Forces")
 
     return figures
 
@@ -88,8 +93,13 @@ class WFSsrv(tornado.web.Application):
         """
         Serves the main HTML page.
         """
+
         def get(self):
-            self.render("home.html", current=self.application.wfs, wfslist=self.application.wfs_names)
+            self.render(
+                "home.html",
+                current=self.application.wfs,
+                wfslist=self.application.wfs_names,
+            )
 
     class SelectHandler(tornado.web.RequestHandler):
         def get(self):
@@ -118,7 +128,9 @@ class WFSsrv(tornado.web.Application):
                         manager = self.application.managers[k]
                         fig_ids.append(manager.num)
                         figkeys.append(k)
-                        ws_uri = "ws://{req.host}/{figdiv}/ws".format(req=self.request, figdiv=k)
+                        ws_uri = "ws://{req.host}/{figdiv}/ws".format(
+                            req=self.request, figdiv=k
+                        )
                         ws_uris.append(ws_uri)
 
                     self.render(
@@ -132,7 +144,7 @@ class WFSsrv(tornado.web.Application):
                         default_mode=self.application.wfs.default_mode,
                         m1_gain=self.application.wfs.m1_gain,
                         m2_gain=self.application.wfs.m2_gain,
-                        log_uri=log_uri
+                        log_uri=log_uri,
                     )
             except Exception as e:
                 log.warning(f"Must specify valid wfs: {wfs}. ({e})")
@@ -146,7 +158,9 @@ class WFSsrv(tornado.web.Application):
                     if self.application.wfs.connected:
                         log.info(f"{self.application.wfs.name} is connected.")
                     else:
-                        log.warning(f"Couldn't connect to {self.application.wfs.name}. Offline?")
+                        log.warning(
+                            f"Couldn't connect to {self.application.wfs.name}. Offline?"
+                        )
                 else:
                     log.info(f"{self.application.wfs.name} already connected")
             self.finish()
@@ -173,42 +187,44 @@ class WFSsrv(tornado.web.Application):
         def make_barchart(self, zernikes, zrms, residual):
             log.debug("Making bar chart...")
             waves = zrms.value / 550.0
-            self.application.figures['barchart'] = zernikes.bar_chart(
+            self.application.figures["barchart"] = zernikes.bar_chart(
                 residual=residual,
-                title=f"Total Wavefront RMS: {zrms.round(1)} ({np.round(waves, 2)} waves)"
+                title=f"Total Wavefront RMS: {zrms.round(1)} ({np.round(waves, 2)} waves)",
             )
-            return 'barchart'
+            return "barchart"
 
         @run_on_executor
         def make_fringebarchart(self, zernikes, focus, cc_x, cc_y):
             log.debug("Making fringe bar chart...")
-            self.application.figures['fringebarchart'] = zernikes.fringe_bar_chart(
+            self.application.figures["fringebarchart"] = zernikes.fringe_bar_chart(
                 title="Focus: {0:0.1f}  CC_X: {1:0.1f}  CC_Y: {2:0.1f}".format(
                     focus,
                     cc_x,
                     cc_y,
                 ),
-                max_c=1500*u.nm,
+                max_c=1500 * u.nm,
             )
-            return 'fringebarchart'
+            return "fringebarchart"
 
         @run_on_executor
         def make_totalforces(self, telescope, forces, m1focus):
             log.debug("Making total forces plot...")
-            self.application.figures['totalforces'] = telescope.plot_forces(forces, m1focus)
-            self.application.figures['totalforces'].set_label("Unmasked M1 Actuator Forces")
-            return 'totalforces'
+            self.application.figures["totalforces"] = telescope.plot_forces(
+                forces, m1focus
+            )
+            self.application.figures["totalforces"].set_label(
+                "Unmasked M1 Actuator Forces"
+            )
+            return "totalforces"
 
         @run_on_executor
         def make_pendingforces(self, telescope, forces, m1focus, limit):
             log.debug("Making pending forces plot...")
-            self.application.figures['forces'] = telescope.plot_forces(
-                forces,
-                m1focus,
-                limit=limit
+            self.application.figures["forces"] = telescope.plot_forces(
+                forces, m1focus, limit=limit
             )
-            self.application.figures['forces'].set_label("Requested M1 Actuator Forces")
-            return 'forces'
+            self.application.figures["forces"].set_label("Requested M1 Actuator Forces")
+            return "forces"
 
         def complete_refresh(self, key):
             self.application.refresh_figure(key, self.application.figures[key])
@@ -226,11 +242,13 @@ class WFSsrv(tornado.web.Application):
             spher = self.get_argument("spher", default=False)
 
             if spher == "true":
-                spher_mask = ['Z11', 'Z22']
+                spher_mask = ["Z11", "Z22"]
                 log.info(f"Ignoring all spherical terms {str(spher_mask)}...")
             else:
-                spher_mask = ['Z22']
-                log.info(f"Only ignoring the high-order spherical terms {str(spher_mask)}...")
+                spher_mask = ["Z22"]
+                log.info(
+                    f"Only ignoring the high-order spherical terms {str(spher_mask)}..."
+                )
 
             if os.path.isfile(filename) and not self.application.busy:
                 self.application.busy = True
@@ -240,9 +258,11 @@ class WFSsrv(tornado.web.Application):
                     self.application.wfs.disconnect()
 
                 log.debug("Measuring slopes...")
-                results = self.application.wfs.measure_slopes(filename, mode=mode, plot=True)
-                if results['slopes'] is not None:
-                    if 'vlt_seeing' in results:
+                results = self.application.wfs.measure_slopes(
+                    filename, mode=mode, plot=True
+                )
+                if results["slopes"] is not None:
+                    if "vlt_seeing" in results:
                         log.info(f"Seeing (zenith): {results['vlt_seeing'].round(2)}")
                         log.info(f"Seeing (raw): {results['raw_vlt_seeing'].round(2)}")
                         if self.application.wfs.connected:
@@ -251,91 +271,127 @@ class WFSsrv(tornado.web.Application):
                     tel = self.application.wfs.telescope
 
                     log.debug("Making slopes plot...")
-                    self.application.figures['slopes'] = results['figures']['slopes']
-                    self.application.refresh_figure('slopes', self.application.figures['slopes'])
+                    self.application.figures["slopes"] = results["figures"]["slopes"]
+                    self.application.refresh_figure(
+                        "slopes", self.application.figures["slopes"]
+                    )
 
                     log.debug("Fitting wavefront...")
                     zresults = self.application.wfs.fit_wavefront(results, plot=True)
-                    if zresults['fit_report'].success:
+                    if zresults["fit_report"].success:
                         log.info(f"Residual RMS: {zresults['residual_rms'].round(2)}")
-                        self.application.figures['residuals'] = zresults['resid_plot']
-                        self.application.refresh_figure('residuals', self.application.figures['residuals'])
+                        self.application.figures["residuals"] = zresults["resid_plot"]
+                        self.application.refresh_figure(
+                            "residuals", self.application.figures["residuals"]
+                        )
 
-                        zvec = zresults['zernike']
-                        zvec_raw = zresults['rot_zernike']
-                        zvec_ref = zresults['ref_zernike']
+                        zvec = zresults["zernike"]
+                        zvec_raw = zresults["rot_zernike"]
+                        zvec_ref = zresults["ref_zernike"]
                         self.application.wavefront_fit = zvec.copy()
 
                         m1gain = self.application.wfs.m1_gain
 
                         # this is the total if we try to correct everything as fit
-                        totforces, totm1focus, zv_totmasked = tel.calculate_primary_corrections(zvec.copy(), gain=m1gain)
+                        totforces, totm1focus, zv_totmasked = (
+                            tel.calculate_primary_corrections(zvec.copy(), gain=m1gain)
+                        )
 
-                        self.async_plot(self.make_barchart, zvec.copy(), zresults['zernike_rms'], zresults['residual_rms'])
-                        self.async_plot(self.make_totalforces, tel, totforces, totm1focus)
+                        self.async_plot(
+                            self.make_barchart,
+                            zvec.copy(),
+                            zresults["zernike_rms"],
+                            zresults["residual_rms"],
+                        )
+                        self.async_plot(
+                            self.make_totalforces, tel, totforces, totm1focus
+                        )
 
                         log.debug("Saving files and calculating corrections...")
                         zvec_file = self.application.datadir / (filename + ".zernike")
-                        zvec_raw_file = self.application.datadir / (filename + ".raw.zernike")
-                        zvec_ref_file = self.application.datadir / (filename + ".ref.zernike")
+                        zvec_raw_file = self.application.datadir / (
+                            filename + ".raw.zernike"
+                        )
+                        zvec_ref_file = self.application.datadir / (
+                            filename + ".ref.zernike"
+                        )
                         zvec.save(filename=zvec_file)
                         zvec_raw.save(filename=zvec_raw_file)
                         zvec_ref.save(filename=zvec_ref_file)
 
                         # check the RMS of the wavefront fit and only apply corrections if the fit is good enough.
                         # M2 can be more lenient to take care of large amounts of focus or coma.
-                        if zresults['residual_rms'] < 4000 * u.nm:
+                        if zresults["residual_rms"] < 4000 * u.nm:
                             self.application.has_pending_m1 = True
                             self.application.has_pending_coma = True
                             self.application.has_pending_focus = True
                             log.info(f"{filename}: all proposed corrections valid.")
-                        elif zresults['residual_rms'] <= 7000 * u.nm:
+                        elif zresults["residual_rms"] <= 7000 * u.nm:
                             self.application.has_pending_focus = True
                             log.warning(f"{filename}: only focus corrections valid.")
-                        elif zresults['residual_rms'] > 7000 * u.nm:
-                            log.error(f"{filename}: wavefront fit too poor; no valid corrections")
+                        elif zresults["residual_rms"] > 7000 * u.nm:
+                            log.error(
+                                f"{filename}: wavefront fit too poor; no valid corrections"
+                            )
 
                         self.application.has_pending_recenter = True
 
-                        self.application.pending_focus = self.application.wfs.calculate_focus(zvec.copy())
+                        self.application.pending_focus = (
+                            self.application.wfs.calculate_focus(zvec.copy())
+                        )
 
                         # only allow M1 corrections if we are reasonably close to good focus...
                         if self.application.pending_focus > 150 * u.um:
                             self.application.has_pending_m1 = False
 
-                        self.application.pending_cc_x, self.application.pending_cc_y = self.application.wfs.calculate_cc(zvec.copy())
+                        self.application.pending_cc_x, self.application.pending_cc_y = (
+                            self.application.wfs.calculate_cc(zvec.copy())
+                        )
                         self.async_plot(
                             self.make_fringebarchart,
                             zvec.copy(),
                             self.application.pending_focus,
                             self.application.pending_cc_x,
-                            self.application.pending_cc_y
+                            self.application.pending_cc_y,
                         )
                         log.debug("Calculating pending forces...")
-                        self.application.pending_az, self.application.pending_el = self.application.wfs.calculate_recenter(results)
-                        self.application.pending_forces, self.application.pending_m1focus, zv_masked = \
-                            self.application.wfs.calculate_primary(zvec.copy(), mask=spher_mask)
-                        self.application.pending_forcefile = self.application.datadir / (filename + ".forces")
-                        zvec_masked_file = self.application.datadir / (filename + ".masked.zernike")
+                        self.application.pending_az, self.application.pending_el = (
+                            self.application.wfs.calculate_recenter(results)
+                        )
+                        (
+                            self.application.pending_forces,
+                            self.application.pending_m1focus,
+                            zv_masked,
+                        ) = self.application.wfs.calculate_primary(
+                            zvec.copy(), mask=spher_mask
+                        )
+                        self.application.pending_forcefile = (
+                            self.application.datadir / (filename + ".forces")
+                        )
+                        zvec_masked_file = self.application.datadir / (
+                            filename + ".masked.zernike"
+                        )
                         zv_masked.save(filename=zvec_masked_file)
-                        limit = np.round(np.abs(self.application.pending_forces['force']).max())
+                        limit = np.round(
+                            np.abs(self.application.pending_forces["force"]).max()
+                        )
 
                         self.async_plot(
                             self.make_pendingforces,
                             tel,
                             self.application.pending_forces,
                             self.application.pending_m1focus,
-                            limit
+                            limit,
                         )
                     else:
                         log.error(f"Wavefront fit failed: {filename}")
                         figures = create_default_figures()
-                        figures['slopes'] = results['figures']['slopes']
+                        figures["slopes"] = results["figures"]["slopes"]
                         self.application.refresh_figures(figures=figures)
                 else:
                     log.error(f"Wavefront measurement failed: {filename}")
                     figures = create_default_figures()
-                    figures['slopes'] = results['figures']['slopes']
+                    figures["slopes"] = results["figures"]["slopes"]
                     self.application.refresh_figures(figures=figures)
 
             else:
@@ -352,15 +408,23 @@ class WFSsrv(tornado.web.Application):
                 self.application.wfs.telescope.correct_primary(
                     self.application.pending_forces,
                     self.application.pending_m1focus,
-                    filename=self.application.pending_forcefile
+                    filename=self.application.pending_forcefile,
                 )
-                max_f = self.application.pending_forces['force'].max()
-                min_f = self.application.pending_forces['force'].min()
+                max_f = self.application.pending_forces["force"].max()
+                min_f = self.application.pending_forces["force"].min()
                 log.info(f"Maximum force {round(max_f, 2)} N")
                 log.info(f"Minimum force {round(min_f, 2)} N")
-                log.info("Adjusting M1 focus by {0:0.1f}".format(self.application.pending_m1focus))
+                log.info(
+                    "Adjusting M1 focus by {0:0.1f}".format(
+                        self.application.pending_m1focus
+                    )
+                )
                 self.application.has_pending_m1 = False
-                self.write("Sending forces to cell and {0:0.1f} focus to secondary...".format(self.application.pending_m1focus))
+                self.write(
+                    "Sending forces to cell and {0:0.1f} focus to secondary...".format(
+                        self.application.pending_m1focus
+                    )
+                )
             else:
                 log.info("No M1 corrections sent")
                 self.write("No M1 corrections sent")
@@ -386,11 +450,12 @@ class WFSsrv(tornado.web.Application):
         def get(self):
             log.info("M2 coma corrections...")
             if self.application.has_pending_coma and self.application.wfs.connected:
-                self.application.wfs.secondary.correct_coma(self.application.pending_cc_x, self.application.pending_cc_y)
+                self.application.wfs.secondary.correct_coma(
+                    self.application.pending_cc_x, self.application.pending_cc_y
+                )
                 self.application.has_pending_coma = False
                 log_str = "Sending {0:0.1f}/{1:0.1f} CC_X/CC_Y to secondary...".format(
-                    self.application.pending_cc_x,
-                    self.application.pending_cc_y
+                    self.application.pending_cc_x, self.application.pending_cc_y
                 )
                 log.info(log_str)
                 self.write(log_str)
@@ -410,9 +475,8 @@ class WFSsrv(tornado.web.Application):
                 #    self.application.pending_el
                 # )
                 log_str = "Hexapod recentering disabled. "
-                log_str += "Please apply mount offsets of EL={0:0.1f}\" and AZ={1:0.1f}\"...".format(
-                    self.application.pending_el,
-                    self.application.pending_az
+                log_str += 'Please apply mount offsets of EL={0:0.1f}" and AZ={1:0.1f}"...'.format(
+                    self.application.pending_el, self.application.pending_az
                 )
                 log.warning(log_str)
                 self.write(log_str)
@@ -424,7 +488,7 @@ class WFSsrv(tornado.web.Application):
     class RestartHandler(tornado.web.RequestHandler):
         def get(self):
             try:
-                wfs = self.get_argument('wfs')
+                wfs = self.get_argument("wfs")
                 self.application.restart_wfs(wfs)
                 log.info(f"restarting {wfs}")
             except Exception as e:
@@ -454,7 +518,7 @@ class WFSsrv(tornado.web.Application):
         def post(self):
             self.set_header("Content-Type", "text/plain")
             try:
-                gain = float(self.get_body_argument('gain'))
+                gain = float(self.get_body_argument("gain"))
                 if self.application.wfs is not None:
                     if gain >= 0.0 and gain <= 1.0:
                         self.application.wfs.m1_gain = gain
@@ -476,7 +540,7 @@ class WFSsrv(tornado.web.Application):
         def post(self):
             self.set_header("Content-Type", "text/plain")
             try:
-                gain = float(self.get_body_argument('gain'))
+                gain = float(self.get_body_argument("gain"))
                 if self.application.wfs is not None:
                     if gain >= 0.0 and gain <= 1.0:
                         self.application.wfs.m2_gain = gain
@@ -510,7 +574,9 @@ class WFSsrv(tornado.web.Application):
             except PermissionError as e:
                 # started getting weird permission errors on hacksaw that looks like NFS race bug.
                 # running 'ls' in the directory clears the error...
-                log.warning(f"Permission error, {e.__class__}, while listing files in {p}...")
+                log.warning(
+                    f"Permission error, {e.__class__}, while listing files in {p}..."
+                )
                 os.system(f"ls {p} > /dev/null")
                 fullfiles = []
             files = []
@@ -551,14 +617,14 @@ class WFSsrv(tornado.web.Application):
 
     class CompMirrorStatus(tornado.web.RequestHandler):
         def get(self):
-            compmirror = self.application.wfs_systems['newf9'].compmirror
+            compmirror = self.application.wfs_systems["newf9"].compmirror
             status = compmirror.get_mirror()
             self.write(json.dumps(status))
             self.finish()
 
     class CompMirrorToggle(tornado.web.RequestHandler):
         def get(self):
-            compmirror = self.application.wfs_systems['newf9'].compmirror
+            compmirror = self.application.wfs_systems["newf9"].compmirror
             status = compmirror.toggle_mirror()
             self.write(json.dumps(status))
             self.finish()
@@ -567,21 +633,22 @@ class WFSsrv(tornado.web.Application):
         """
         Handles downloading of the figure in various file formats.
         """
+
         def get(self, fig, fmt):
             managers = self.application.managers
 
             mimetypes = {
-                'ps': 'application/postscript',
-                'eps': 'application/postscript',
-                'pdf': 'application/pdf',
-                'svg': 'image/svg+xml',
-                'png': 'image/png',
-                'jpeg': 'image/jpeg',
-                'tif': 'image/tiff',
-                'emf': 'application/emf'
+                "ps": "application/postscript",
+                "eps": "application/postscript",
+                "pdf": "application/pdf",
+                "svg": "image/svg+xml",
+                "png": "image/png",
+                "jpeg": "image/jpeg",
+                "tif": "image/tiff",
+                "emf": "application/emf",
             }
 
-            self.set_header('Content-Type', mimetypes.get(fmt, 'binary'))
+            self.set_header("Content-Type", mimetypes.get(fmt, "binary"))
 
             buff = io.BytesIO()
             managers[fig].canvas.print_figure(buff, format=fmt)
@@ -592,15 +659,18 @@ class WFSsrv(tornado.web.Application):
         """
         A websocket for streaming log messages from log file to the browser.
         """
+
         def open(self):
-            if hasattr(self, 'set_nodelay'):
+            if hasattr(self, "set_nodelay"):
                 self.set_nodelay(False)
             filename = self.application.logfile
-            self.proc = Subprocess(["tail", "-f", "-n", "0", filename],
-                                   stdout=Subprocess.STREAM,
-                                   stdin=Subprocess.STREAM,
-                                   stderr=Subprocess.STREAM,
-                                   bufsize=1)
+            self.proc = Subprocess(
+                ["tail", "-f", "-n", "0", filename],
+                stdout=Subprocess.STREAM,
+                stdin=Subprocess.STREAM,
+                stderr=Subprocess.STREAM,
+                bufsize=1,
+            )
             self.proc.set_exit_callback(self._close)
             tornado.ioloop.IOLoop.current().spawn_callback(self.stream_output)
 
@@ -621,7 +691,7 @@ class WFSsrv(tornado.web.Application):
             try:
                 while True:
                     line = yield self.proc.stdout.read_until(b"\n")
-                    self.write_line(line.decode('utf-8'))
+                    self.write_line(line.decode("utf-8"))
             except StreamClosedError:
                 pass
 
@@ -632,10 +702,16 @@ class WFSsrv(tornado.web.Application):
                 color = "text-danger"
             else:
                 color = "text-success"
-            if "tornado.access" not in html and "poppy" not in html and "DEBUG" not in html:
+            if (
+                "tornado.access" not in html
+                and "poppy" not in html
+                and "DEBUG" not in html
+            ):
                 html = "<samp><span class=%s>%s</span></samp>" % (color, html)
-                html += "<script>$(\"#log\").scrollTop($(\"#log\")[0].scrollHeight);</script>"
-                self.write_message(html.encode('utf-8'))
+                html += (
+                    '<script>$("#log").scrollTop($("#log")[0].scrollHeight);</script>'
+                )
+                self.write_message(html.encode("utf-8"))
 
     class WebSocket(tornado.websocket.WebSocketHandler):
         """
@@ -654,6 +730,7 @@ class WFSsrv(tornado.web.Application):
             - ``send_binary(blob)`` is called to send binary image data
               to the browser.
         """
+
         supports_binary = True
 
         def open(self, figname):
@@ -661,7 +738,7 @@ class WFSsrv(tornado.web.Application):
             self.figname = figname
             manager = self.application.managers[figname]
             manager.add_web_socket(self)
-            if hasattr(self, 'set_nodelay'):
+            if hasattr(self, "set_nodelay"):
                 self.set_nodelay(True)
 
         def on_close(self):
@@ -677,10 +754,10 @@ class WFSsrv(tornado.web.Application):
 
             # Every message has a "type" and a "figure_id".
             message = json.loads(message)
-            if message['type'] == 'supports_binary':
-                self.supports_binary = message['value']
+            if message["type"] == "supports_binary":
+                self.supports_binary = message["value"]
             else:
-                manager = self.application.fig_id_map[message['figure_id']]
+                manager = self.application.fig_id_map[message["figure_id"]]
                 manager.handle_json(message)
 
         def send_json(self, content):
@@ -691,7 +768,8 @@ class WFSsrv(tornado.web.Application):
                 self.write_message(blob, binary=True)
             else:
                 data_uri = "data:image/png;base64,{0}".format(
-                    blob.encode('base64').replace('\n', ''))
+                    blob.encode("base64").replace("\n", "")
+                )
                 self.write_message(data_uri)
 
     def restart_wfs(self, wfs):
@@ -703,7 +781,7 @@ class WFSsrv(tornado.web.Application):
 
     def close_figures(self):
         if self.figures is not None:
-            plt.close('all')
+            plt.close("all")
 
     def refresh_figure(self, k, figure):
         if k not in self.managers:
@@ -742,26 +820,28 @@ class WFSsrv(tornado.web.Application):
 
     def update_seeing(self, results):
         try:
-            wfs_seeing = results['vlt_seeing'].round(2).value
-            wfs_raw_seeing = results['raw_vlt_seeing'].round(2).value
-            wfs_ellipticity = results['ellipticity'].round(3)
-            r1 = self.set_redis('wfs_seeing', wfs_seeing)
-            r2 = self.set_redis('wfs_raw_seeing', wfs_raw_seeing)
+            wfs_seeing = results["vlt_seeing"].round(2).value
+            wfs_raw_seeing = results["raw_vlt_seeing"].round(2).value
+            wfs_ellipticity = results["ellipticity"].round(3)
+            r1 = self.set_redis("wfs_seeing", wfs_seeing)
+            r2 = self.set_redis("wfs_raw_seeing", wfs_raw_seeing)
             if None not in r1 and None not in r2:
-                log.info(f"Set redis values wfs_seeing={wfs_seeing} and wfs_raw_seeing={wfs_raw_seeing}")
+                log.info(
+                    f"Set redis values wfs_seeing={wfs_seeing} and wfs_raw_seeing={wfs_raw_seeing}"
+                )
             else:
                 log.warning("Problem sending seeing values to redis...")
-            r3 = self.set_redis('wfs_ellipticity', wfs_ellipticity)
+            r3 = self.set_redis("wfs_ellipticity", wfs_ellipticity)
             if None not in r3:
                 log.info(f"Set redis values wfs_ellipticity={wfs_ellipticity}")
             else:
                 log.warning("Problem sending ellipticity value to redis...")
         except Exception as e:
-            log.warning(f'Error connecting to MMTO API server... : {e}')
+            log.warning(f"Error connecting to MMTO API server... : {e}")
 
     def __init__(self):
-        if 'WFSROOT' in os.environ:
-            self.datadir = pathlib.Path(os.environ['WFSROOT'])
+        if "WFSROOT" in os.environ:
+            self.datadir = pathlib.Path(os.environ["WFSROOT"])
         else:
             self.datadir = pathlib.Path.cwd()
 
@@ -774,7 +854,9 @@ class WFSsrv(tornado.web.Application):
 
         if os.path.isdir(self.datadir):
             self.logfile = self.datadir / "wfs.log"
-            formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+            formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            )
             handler = logging.handlers.WatchedFileHandler(self.logfile)
             handler.setFormatter(formatter)
             glog.addHandler(handler)
@@ -784,11 +866,13 @@ class WFSsrv(tornado.web.Application):
 
         self.wfs = None
         self.wfs_systems = {}
-        self.wfs_keys = ['newf9', 'f5', 'mmirs', 'binospec']
+        self.wfs_keys = ["newf9", "f5", "mmirs", "binospec"]
         self.wfs_names = {}
         for w in self.wfs_keys:
             self.wfs_systems[w] = WFSFactory(wfs=w)
-            self.wfs_systems[w].nzern = 10  # hard-code this for now, but should be configurable/settable
+            self.wfs_systems[w].nzern = (
+                10  # hard-code this for now, but should be configurable/settable
+            )
             self.wfs_names[w] = self.wfs_systems[w].name
 
         self.busy = False
@@ -803,10 +887,10 @@ class WFSsrv(tornado.web.Application):
         self.refresh_figures()
         self.wavefront_fit = ZernikeVector(Z04=1)
 
-        if 'REDISHOST' in os.environ:
-            redis_host = os.environ['REDISHOST']
+        if "REDISHOST" in os.environ:
+            redis_host = os.environ["REDISHOST"]
         else:
-            redis_host = 'redis.mmto.arizona.edu'
+            redis_host = "redis.mmto.arizona.edu"
         self.redis_server = redis.StrictRedis(host=redis_host, port=6379, db=0)
 
         handlers = [
@@ -833,15 +917,15 @@ class WFSsrv(tornado.web.Application):
             (r"/clearm2", self.ClearM2Handler),
             (r"/compmirror", self.CompMirrorStatus),
             (r"/compmirrortoggle", self.CompMirrorToggle),
-            (r'/download_([a-z]+).([a-z0-9.]+)', self.Download),
-            (r'/log', self.LogStreamer),
-            (r'/([a-z0-9.]+)/ws', self.WebSocket)
+            (r"/download_([a-z]+).([a-z0-9.]+)", self.Download),
+            (r"/log", self.LogStreamer),
+            (r"/([a-z0-9.]+)/ws", self.WebSocket),
         ]
 
         settings = dict(
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
-            debug=True
+            debug=True,
         )
         super(WFSsrv, self).__init__(handlers, **settings)
 
