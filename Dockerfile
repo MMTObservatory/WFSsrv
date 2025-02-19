@@ -4,8 +4,13 @@ LABEL maintainer="te.pickering@gmail.com"
 
 COPY . .
 
-RUN python -m pip install --upgrade pip
-RUN python -m pip install -e .
+RUN apt-get update
+RUN apt-get install -y git
+
+RUN python -m pip install --upgrade pip setuptools setuptools_scm
+RUN python -m pip install git+https://github.com/MMTObservatory/camsrv#egg=camsrv
+RUN python -m pip install git+https://github.com/MMTObservatory/mmtwfs#egg=mmtwfs
+RUN python -m pip install .
 
 EXPOSE 8080
 
