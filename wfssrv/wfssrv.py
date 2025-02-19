@@ -9,6 +9,10 @@ import io
 import os
 import json
 import pathlib
+import signal
+import socket
+from pathlib import Path
+
 import redis
 
 import numpy as np
@@ -35,8 +39,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_webagg_core import (
-    FigureCanvasWebAggCore,
+from matplotlib.backends.backend_webagg import (
+    FigureCanvasWebAgg,
+    FigureManagerWebAgg,
     new_figure_manager_given_figure,
 )
 
@@ -89,6 +94,15 @@ def create_default_figures():
 
 
 class WFSsrv(tornado.web.Application):
+
+    class MplJs(tornado.web.RequestHandler):
+        def get(self):
+            self.set_header('Content-Type', 'application/javascript')
+
+            js_content = FigureManagerWebAgg.get_javascript()
+
+            self.write(js_content)
+
     class HomeHandler(tornado.web.RequestHandler):
         """
         Serves the main HTML page.
@@ -758,7 +772,10 @@ class WFSsrv(tornado.web.Application):
                 self.supports_binary = message["value"]
             else:
                 manager = self.application.fig_id_map[message["figure_id"]]
-                manager.handle_json(message)
+                try:
+                    manager.handle_json(message)
+                except Exception as e:
+                    pass
 
         def send_json(self, content):
             self.write_message(json.dumps(content))
@@ -789,10 +806,9 @@ class WFSsrv(tornado.web.Application):
             self.managers[k] = new_figure_manager_given_figure(fignum, figure)
             self.fig_id_map[fignum] = self.managers[k]
         else:
-            canvas = FigureCanvasWebAggCore(figure)
+            canvas = FigureCanvasWebAgg(figure)
             self.managers[k].canvas = canvas
             self.managers[k].canvas.manager = self.managers[k]
-            self.managers[k]._get_toolbar(canvas)
             self.managers[k]._send_event("refresh")
             self.managers[k].canvas.draw()
 
@@ -894,8 +910,20 @@ class WFSsrv(tornado.web.Application):
         self.redis_server = redis.StrictRedis(host=redis_host, port=6379, db=0)
 
         handlers = [
+            # Static files for the CSS and JS
+            (r'/_static/(.*)',
+                tornado.web.StaticFileHandler,
+                {'path': FigureManagerWebAgg.get_static_file_path()}
+            ),
+
+            # Static images for the toolbar
+            (r'/_images/(.*)',
+                tornado.web.StaticFileHandler,
+                {'path': Path(matplotlib.get_data_path(), 'images')}
+            ),
+
             (r"/", self.HomeHandler),
-            (r"/mpl\.js", tornado.web.RedirectHandler, dict(url="static/js/mpl.js")),
+            (r"/mpl.js", self.MplJs),
             (r"/select", self.SelectHandler),
             (r"/wfspage", self.WFSPageHandler),
             (r"/connect", self.ConnectHandler),
@@ -934,12 +962,30 @@ def main():
     application = WFSsrv()
 
     http_server = tornado.httpserver.HTTPServer(application)
-    http_server.listen(8080)
+    sockets = tornado.netutil.bind_sockets(8080, '')
+    http_server.add_sockets(sockets)
 
-    print("http://127.0.0.1:8080/")
+    for s in sockets:
+        addr, port = s.getsockname()[:2]
+        if s.family is socket.AF_INET6:
+            addr = f'[{addr}]'
+        print(f"WFSSrv listening on http://{addr}:{port}/")
     print("Press Ctrl+C to quit")
 
-    tornado.ioloop.IOLoop.instance().start()
+    ioloop = tornado.ioloop.IOLoop.instance()
+
+    def shutdown():
+        ioloop.stop()
+        print("Server stopped")
+
+    old_handler = signal.signal(
+        signal.SIGINT,
+        lambda sig, frame: ioloop.add_callback_from_signal(shutdown))
+
+    try:
+        ioloop.start()
+    finally:
+        signal.signal(signal.SIGINT, old_handler)
 
 
 if __name__ == "__main__":
