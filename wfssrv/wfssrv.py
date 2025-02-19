@@ -97,7 +97,7 @@ class WFSsrv(tornado.web.Application):
 
     class MplJs(tornado.web.RequestHandler):
         def get(self):
-            self.set_header('Content-Type', 'application/javascript')
+            self.set_header("Content-Type", "application/javascript")
 
             js_content = FigureManagerWebAgg.get_javascript()
 
@@ -774,7 +774,7 @@ class WFSsrv(tornado.web.Application):
                 manager = self.application.fig_id_map[message["figure_id"]]
                 try:
                     manager.handle_json(message)
-                except Exception as e:
+                except Exception:
                     pass
 
         def send_json(self, content):
@@ -911,17 +911,17 @@ class WFSsrv(tornado.web.Application):
 
         handlers = [
             # Static files for the CSS and JS
-            (r'/_static/(.*)',
+            (
+                r"/_static/(.*)",
                 tornado.web.StaticFileHandler,
-                {'path': FigureManagerWebAgg.get_static_file_path()}
+                {"path": FigureManagerWebAgg.get_static_file_path()},
             ),
-
             # Static images for the toolbar
-            (r'/_images/(.*)',
+            (
+                r"/_images/(.*)",
                 tornado.web.StaticFileHandler,
-                {'path': Path(matplotlib.get_data_path(), 'images')}
+                {"path": Path(matplotlib.get_data_path(), "images")},
             ),
-
             (r"/", self.HomeHandler),
             (r"/mpl.js", self.MplJs),
             (r"/select", self.SelectHandler),
@@ -962,13 +962,13 @@ def main():
     application = WFSsrv()
 
     http_server = tornado.httpserver.HTTPServer(application)
-    sockets = tornado.netutil.bind_sockets(8080, '')
+    sockets = tornado.netutil.bind_sockets(8080, "")
     http_server.add_sockets(sockets)
 
     for s in sockets:
         addr, port = s.getsockname()[:2]
         if s.family is socket.AF_INET6:
-            addr = f'[{addr}]'
+            addr = f"[{addr}]"
         print(f"WFSSrv listening on http://{addr}:{port}/")
     print("Press Ctrl+C to quit")
 
@@ -979,8 +979,8 @@ def main():
         print("Server stopped")
 
     old_handler = signal.signal(
-        signal.SIGINT,
-        lambda sig, frame: ioloop.add_callback_from_signal(shutdown))
+        signal.SIGINT, lambda sig, frame: ioloop.add_callback_from_signal(shutdown)
+    )
 
     try:
         ioloop.start()
