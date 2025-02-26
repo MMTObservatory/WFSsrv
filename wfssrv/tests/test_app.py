@@ -6,4 +6,4 @@ from ..wfssrv import WFSsrv as wfs
 
 def test_wfs():
     app = wfs()
-    assert(app is not None)
+    assert app is not None
