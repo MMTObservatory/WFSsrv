@@ -89,6 +89,7 @@ def create_default_figures():
     # stubs for mirror forces
     figures["totalforces"] = tel.plot_forces(forces)
     figures["totalforces"].set_label("Total M1 Actuator Forces")
+    plt.tight_layout()
 
     return figures
 
@@ -809,8 +810,8 @@ class WFSsrv(tornado.web.Application):
             canvas = FigureCanvasWebAgg(figure)
             self.managers[k].canvas = canvas
             self.managers[k].canvas.manager = self.managers[k]
-            self.managers[k]._send_event("refresh")
-            self.managers[k].canvas.draw()
+            self.managers[k].canvas.draw_idle()
+            self.managers[k].canvas.flush_events()
 
     def refresh_figures(self, figures=None):
         if figures is None:
