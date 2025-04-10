@@ -43,12 +43,12 @@
             }
         </style>
 
-        <script src="/mpl.js"></script>
-        <script src="{{ static_url("js/jquery-3.2.1.min.js") }}"></script>
+        <script src="{{ static_url("js/jquery-3.7.1.min.js") }}"></script>
         <script src="{{ static_url("js/jquery-ui.min.js") }}"></script>
         <script src="{{ static_url("js/popper.min.js") }}"></script>
         <script src="{{ static_url("js/bootstrap.min.js") }}"></script>
         <script src="{{ static_url("js/plotly-latest.min.js") }}"></script>
+        <script src="/mpl.js"></script>
 
         <script>
             /* This is a callback that is called when the user saves
@@ -64,8 +64,7 @@
                      $('#zernikes').text(data);
                  });
             };
-            $(document).ready(
-                function() {
+            $(function() {
                     /* It is up to the application to provide a websocket that the figure
                      will use to communicate to the server.  This websocket object can
                      also be a "fake" websocket that underneath multiplexes messages
@@ -84,7 +83,7 @@
                             // A function called when a file type is selected for download
                             ondownload_{{ figure }},
                             // The HTML element in which to place the figure
-                            $('div#{{ figure }}')
+                            $('#{{ figure }}')[0],
                         );
 
                     {% end %}
@@ -442,7 +441,7 @@
         <div>
             <ul class="nav nav-tabs" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" id='slope-tab' href="#slopes" aria-controls="slopes" role="tab" data-toggle="tab" aria-seleced="true">Slopes/Residuals</a>
+                    <a class="nav-link active" id='slope-tab' href="#slope_im" aria-controls="slopes" role="tab" data-toggle="tab" aria-seleced="true">Slopes/Residuals</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" id='zern-tab' href="#zernfit" aria-controls="zernfit" role="tab" data-toggle="tab" onClick="getZerns()" aria-selected="false">Wavefront Fit</a>
@@ -459,7 +458,7 @@
             </ul>
 
             <div class="tab-content">
-                <div role="tabpanel" class="tab-pane fade show active" id="slopes" aria-labelledby="slope-tab">
+                <div role="tabpanel" class="tab-pane fade show active" id="slope_im" aria-labelledby="slope-tab">
                     <table class="table table-striped">
                         <tbody>
                             <tr>
