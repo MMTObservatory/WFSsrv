@@ -838,9 +838,9 @@ class WFSsrv(tornado.web.Application):
 
     def update_seeing(self, results):
         try:
-            wfs_seeing = results["vlt_seeing"].round(2).value
-            wfs_raw_seeing = results["raw_vlt_seeing"].round(2).value
-            wfs_ellipticity = results["ellipticity"].round(3)
+            wfs_seeing = float(results["vlt_seeing"].round(2).value)
+            wfs_raw_seeing = float(results["raw_vlt_seeing"].round(2).value)
+            wfs_ellipticity = float(results["ellipticity"].round(3))
             r1 = self.set_redis("wfs_seeing", wfs_seeing)
             r2 = self.set_redis("wfs_raw_seeing", wfs_raw_seeing)
             if None not in r1 and None not in r2:
