@@ -813,6 +813,7 @@ class WFSsrv(tornado.web.Application):
             self.managers[k].canvas = canvas
             self.managers[k].canvas.manager = self.managers[k]
             self.managers[k].canvas.draw_idle()
+            self.managers[k].refresh_all()
 
     def refresh_figures(self, figures=None):
         if figures is None:
