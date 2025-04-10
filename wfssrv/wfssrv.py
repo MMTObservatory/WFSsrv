@@ -808,7 +808,8 @@ class WFSsrv(tornado.web.Application):
             self.fig_id_map[fignum] = self.managers[k]
         else:
             canvas = FigureCanvasWebAgg(figure)
-            canvas._set_device_pixel_ratio(2.0)
+            # this is needed for high dpi displays. need a real fix for this.
+            # canvas._set_device_pixel_ratio(2.0)
             self.managers[k].canvas = canvas
             self.managers[k].canvas.manager = self.managers[k]
             self.managers[k].canvas.draw_idle()
