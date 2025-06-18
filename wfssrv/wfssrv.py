@@ -807,13 +807,15 @@ class WFSsrv(tornado.web.Application):
             self.managers[k] = new_figure_manager_given_figure(fignum, figure)
             self.fig_id_map[fignum] = self.managers[k]
         else:
+            # for high-DPI displays, we need to set the device pixel ratio
+            # after resetting the canvas to the new figure. it used to happen
+            # automatically...
+            scale = self.managers[k].canvas.device_pixel_ratio
             canvas = FigureCanvasWebAgg(figure)
-            # this is needed for high dpi displays. need a real fix for this.
-            # canvas._set_device_pixel_ratio(2.0)
+            canvas._set_device_pixel_ratio(scale)
             self.managers[k].canvas = canvas
             self.managers[k].canvas.manager = self.managers[k]
             self.managers[k].canvas.draw_idle()
-            self.managers[k].refresh_all()
 
     def refresh_figures(self, figures=None):
         if figures is None:

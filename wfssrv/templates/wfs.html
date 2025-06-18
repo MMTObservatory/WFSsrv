@@ -51,6 +51,13 @@
         <script src="/mpl.js"></script>
 
         <script>
+            function ready(fn) {
+                if (document.readyState != 'loading') {
+                    fn();
+                } else {
+                    window.addEventListener('DOMContentLoaded', fn);
+                }
+            }
             /* This is a callback that is called when the user saves
              (downloads) a file.  Its purpose is really to map from a
              figure and file format to a url in the application. */
