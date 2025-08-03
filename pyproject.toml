@@ -119,6 +119,7 @@ wfssrv = { path = ".", editable = true }
 
 [tool.pixi.target.linux-64.dependencies]
 mkl = "*"
+mkl-service = "*"
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
@@ -130,3 +131,6 @@ wfssrv = "wfssrv"
 
 [tool.pixi.feature.test.tasks]
 test = "pytest"
+
+[tool.pixi.dependencies]
+matplotlib = "*"
