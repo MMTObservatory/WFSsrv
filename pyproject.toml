@@ -59,7 +59,7 @@ requires = [
 build-backend = 'setuptools.build_meta'
 
 [tool.pytest.ini_options]
-minversion = 7.0
+minversion = "7.0"
 testpaths = [
     "wfssrv/tests",
 ]
@@ -116,6 +116,9 @@ platforms = ["osx-arm64", "linux-64"]
 
 [tool.pixi.pypi-dependencies]
 wfssrv = { path = ".", editable = true }
+
+[tool.pixi.target.linux-64.dependencies]
+mkl = "*"
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
