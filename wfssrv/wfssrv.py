@@ -723,9 +723,6 @@ class WFSsrv(tornado.web.Application):
                 and "DEBUG" not in html
             ):
                 html = "<samp><span class=%s>%s</span></samp>" % (color, html)
-                html += (
-                    '<script>$("#log").scrollTop($("#log")[0].scrollHeight);</script>'
-                )
                 self.write_message(html.encode("utf-8"))
 
     class WebSocket(tornado.websocket.WebSocketHandler):
