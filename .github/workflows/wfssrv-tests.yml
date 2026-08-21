@@ -18,7 +18,7 @@ on:
 # workers and running tox.
 jobs:
   test:
-    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v1
+    uses: OpenAstronomy/github-actions-workflows/.github/workflows/tox.yml@v3
     with:
       envs: |
         - linux: codestyle
@@ -28,17 +28,9 @@ jobs:
         - linux: py314-cov
           name: py314
         - linux: py313-numpydev
-          name: py313-numpydev
-          continue-on-error: true
         - linux: py313-astropydev
-          name: py313-astropydev
-          continue-on-error: true
         - linux: py314-numpydev
-          name: py314-numpydev
-          continue-on-error: true
         - linux: py314-astropydev
-          name: py314-astropydev
-          continue-on-error: true
         - linux: build_docs
           pytest: false
         - linux: linkcheck
