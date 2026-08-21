@@ -118,15 +118,18 @@ class WFSsrv(tornado.web.Application):
 
     class SelectHandler(tornado.web.RequestHandler):
         def get(self):
-            try:
-                wfs = self.get_argument("wfs")
-                if wfs in self.application.wfs_keys:
-                    log.info(f"Setting {wfs}")
-                    self.application.wfs = self.application.wfs_systems[wfs]
-            except Exception as e:
-                log.warning(f"Must specify valid wfs: {wfs}. ({e.__class__})")
-            finally:
-                self.finish()
+            wfs = self.get_argument("wfs", None)
+            if wfs not in self.application.wfs_keys:
+                log.warning(
+                    f"Must specify valid wfs, not {wfs}. "
+                    f"Valid choices are {self.application.wfs_keys}."
+                )
+                self.send_error(400)
+                return
+
+            log.info(f"Setting {wfs}")
+            self.application.wfs = self.application.wfs_systems[wfs]
+            self.finish()
 
     class WFSPageHandler(tornado.web.RequestHandler):
         def get(self):
