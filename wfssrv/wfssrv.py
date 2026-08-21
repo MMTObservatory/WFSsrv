@@ -55,6 +55,21 @@ glog = logging.getLogger("")
 log = logging.getLogger("WFSsrv")
 log.setLevel(logging.DEBUG)
 
+# Titles displayed above each figure in the browser. The webagg backend takes
+# that heading from the figure manager's window title, which defaults to
+# "Figure <num>". Since we number the managers by id(figure), that default is a
+# large meaningless integer, so give each figure a title of its own. A figure
+# carries its title in its label, and mmtwfs labels the figures it hands back;
+# this table is the fallback for any that arrive unlabelled.
+FIGURE_TITLES = {
+    "slopes": "Aperture Positions and Spot Movement",
+    "residuals": "Zernike Fit Residuals",
+    "fringebarchart": "Zernike Mode Amplitude",
+    "barchart": "RMS Wavefront Errors",
+    "forces": "Requested M1 Actuator Forces",
+    "totalforces": "Total M1 Actuator Forces",
+}
+
 
 def create_default_figures():
     zv = ZernikeVector(Z04=1)
@@ -68,27 +83,29 @@ def create_default_figures():
 
     # stub for plot showing bkg-subtracted WFS image with aperture positions
     figures["slopes"], ax["slopes"] = plt.subplots()
-    figures["slopes"].set_label("Aperture Positions and Spot Movement")
+    figures["slopes"].set_label(FIGURE_TITLES["slopes"])
     ax["slopes"].imshow(data, cmap="Greys", origin="lower", interpolation="None")
 
     # stub for plot showing bkg-subtracted WFS image and residuals slopes of wavefront fit
     figures["residuals"], ax["residuals"] = plt.subplots()
-    figures["residuals"].set_label("Zernike Fit Residuals")
+    figures["residuals"].set_label(FIGURE_TITLES["residuals"])
     ax["residuals"].imshow(data, cmap="Greys", origin="lower", interpolation="None")
 
     # stub for zernike bar chart
     figures["barchart"] = zv.bar_chart()
+    figures["barchart"].set_label(FIGURE_TITLES["barchart"])
 
     # stub for zernike fringe bar chart
     figures["fringebarchart"] = zv.fringe_bar_chart()
+    figures["fringebarchart"].set_label(FIGURE_TITLES["fringebarchart"])
 
     # stubs for mirror forces
     figures["forces"] = tel.plot_forces(forces)
-    figures["forces"].set_label("Requested M1 Actuator Forces")
+    figures["forces"].set_label(FIGURE_TITLES["forces"])
 
     # stubs for mirror forces
     figures["totalforces"] = tel.plot_forces(forces)
-    figures["totalforces"].set_label("Total M1 Actuator Forces")
+    figures["totalforces"].set_label(FIGURE_TITLES["totalforces"])
     plt.tight_layout()
 
     return figures
@@ -819,6 +836,11 @@ class WFSsrv(tornado.web.Application):
             self.managers[k].canvas = canvas
             self.managers[k].canvas.manager = self.managers[k]
             self.managers[k].canvas.draw_idle()
+
+        # prefer the figure's own label, falling back to the canonical title
+        # for this slot. this also pushes the title to any already-connected
+        # browser.
+        self.managers[k].set_window_title(figure.get_label() or FIGURE_TITLES.get(k, k))
 
     def refresh_figures(self, figures=None):
         if figures is None:
