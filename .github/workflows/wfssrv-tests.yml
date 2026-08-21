@@ -1,10 +1,18 @@
-# GitHub Actions workflow for mmtwfs testing and continuous integration.
+# GitHub Actions workflow for wfssrv testing and continuous integration.
 #
 # This file performs testing using tox and tox.ini to define and configure the test environments.
 
 name: Python Tests
 
-on: [push, pull_request]
+# Only build master and tags on push. Everything else is covered by the
+# pull_request trigger, so branches with an open PR are not built twice.
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
 
 jobs:
 
@@ -16,9 +24,9 @@ jobs:
         python-ver: [13, 14]
         tox-env: [cov, astropydev, numpydev]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v7
     - name: Set up python 3.${{ matrix.python-ver }} with tox environment ${{ matrix.tox-env }} on ${{ matrix.os }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v7
       with:
         python-version: 3.${{ matrix.python-ver }}
     - name: Install base dependencies
@@ -30,18 +38,18 @@ jobs:
         tox -e py3${{ matrix.python-ver }}-${{ matrix.tox-env }}
     - name: Upload coverage to codecov
       if: matrix.tox-env == 'cov' && matrix.python-ver == '13'
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV }}
-        file: ./coverage.xml
+        files: ./coverage.xml
         fail_ci_if_error: true
 
   doc_test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v7
     - name: Set up Python to build docs with sphinx
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v7
       with:
         python-version: 3.13
     - name: Install base dependencies
@@ -56,9 +64,9 @@ jobs:
   codestyle:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v7
     - name: Python codestyle check
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v7
       with:
         python-version: 3.13
     - name: Install base dependencies
