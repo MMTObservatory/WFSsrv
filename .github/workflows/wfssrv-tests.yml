@@ -27,14 +27,21 @@ jobs:
           name: py313
         - linux: py314-cov
           name: py314
-        - linux: py313-numpydev
-        - linux: py313-astropydev
-        - linux: py314-numpydev
-        - linux: py314-astropydev
+        - linux: py313-numpydev-cov
+          name: py313-numpydev
+        - linux: py313-astropydev-cov
+          name: py313-astropydev
+        - linux: py314-numpydev-cov
+          name: py314-numpydev
+        - linux: py314-astropydev-cov
+          name: py314-astropydev
         - linux: build_docs
           pytest: false
         - linux: linkcheck
           pytest: false
       coverage: 'codecov'
+      # codestyle, build_docs and linkcheck have no python version in their env
+      # name. The runner default is older than this package supports, so pin it.
+      default_python: '3.13'
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV }}
