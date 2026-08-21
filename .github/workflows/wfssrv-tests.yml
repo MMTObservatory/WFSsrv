@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-ver: [13]
+        python-ver: [13, 14]
         tox-env: [cov, astropydev, numpydev]
     steps:
     - uses: actions/checkout@v1
@@ -29,7 +29,7 @@ jobs:
       run: |
         tox -e py3${{ matrix.python-ver }}-${{ matrix.tox-env }}
     - name: Upload coverage to codecov
-      if: matrix.tox-env == 'cov' && matrix.python-ver == '8'
+      if: matrix.tox-env == 'cov' && matrix.python-ver == '13'
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODECOV }}
