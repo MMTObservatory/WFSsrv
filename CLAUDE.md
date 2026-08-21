@@ -19,9 +19,12 @@ pixi run wfssrv         # via pixi
 pytest                          # run all tests
 pytest wfssrv/tests/test_app.py # run a single test file
 pixi run test                   # via pixi
-tox -e py312-test               # via tox
+tox -e py313-test               # via tox
+tox -e py313-cov                # with coverage (what CI runs)
 ```
 The test suite is minimal — it just instantiates `WFSsrv()`. Because the constructor builds all four WFS systems via `mmtwfs`'s `WFSFactory`, even this smoke test requires `mmtwfs` and `camsrv` installed.
+
+Python 3.13 is the minimum (`mmtwfs` requires >= 3.13); `tox.ini` defines `py313` and `py314` envs only. CI (`.github/workflows/wfssrv-tests.yml`) runs `py{313,314}-{cov,astropydev,numpydev}` plus `build_docs`, `linkcheck`, and `codestyle`.
 
 ### Code style
 ```bash
@@ -67,6 +70,22 @@ Each WFS system is hard-coded to fit `nzern = 10` Zernike modes.
 - `.forces` — M1 actuator force files
 - `wfs.log` — application log (tailed live to the browser by `LogStreamer`)
 
-**Templates** (`wfssrv/templates/`): `home.html` (system selection), `wfs.html` (main analysis UI), `cwfs.html` (companion mirror UI for F/9).
+**Templates** (`wfssrv/templates/`): `home.html` (system selection), `wfs.html` (main analysis UI), `cwfs.html` (comparison mirror UI for F/9).
 
-**WebSocket handlers**: `LogStreamer` streams log output to the browser; `WebSocket` handles matplotlib figure interactivity.
+**Front end**: Bootstrap 5.3.3 and its bundled JS are vendored under `wfssrv/static/` and served locally — there is no CDN dependency and **no jQuery**. All client code is plain ES: `fetch()` for the JSON/text endpoints, `addEventListener` for handlers, `data-bs-*` attributes for Bootstrap behaviour (tabs, modals). Keep it that way; do not reintroduce jQuery or `$()` idioms when editing the templates. (`plotly-latest.min.js` is still vendored and loaded by `wfs.html` but nothing calls it — it is a leftover.)
+
+**WebSocket handlers**: `LogStreamer` streams log output to the browser (`/log`, consumed by a raw `new WebSocket(...)` in `wfs.html`/`cwfs.html`); `WebSocket` (`/<figure>/ws`) handles matplotlib figure interactivity.
+
+**HTTP endpoints** (all registered in `WFSsrv.__init__`, all nested handler classes in `wfssrv/wfssrv.py`):
+- Page/setup: `/`, `/select`, `/wfspage`, `/connect`, `/disconnect`, `/restart`, `/setdatadir`
+- Analysis: `/analyze`, `/zfit`, `/files`, `/download_<type>.<ext>`
+- Corrections: `/m1correct`, `/focuscorrect`, `/comacorrect`, `/recenter`, `/clear`, `/clearm1`, `/clearm2`, `/clearpending`
+- Gains: `/m1gain`, `/m2gain`
+- F/9 comparison mirror: `/compmirror`, `/compmirrortoggle`
+- Matplotlib plumbing: `/mpl.js`, `/_static/*`, `/_images/*`
+
+Most handlers accept `?format=json` and otherwise return plain text, which is what the templates rely on.
+
+## Working with mmtwfs
+
+`mmtwfs` is a git dependency, not a PyPI release, and is usually checked out alongside this repo (`../mmtwfs`). The APIs this server depends on are narrow: `WFSFactory`, `ZernikeVector` (`.bar_chart()`, `.fringe_bar_chart()`), `MMT` (`.bending_forces()`, `.calculate_primary_corrections()`, `.correct_primary()`, `.plot_forces()`), and `secondary.{focus,correct_coma,recenter}()`. When `mmtwfs` changes, those are the call sites to check — the smoke test in `wfssrv/tests/test_app.py` catches import/constructor breakage but nothing past it.
