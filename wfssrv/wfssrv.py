@@ -130,40 +130,43 @@ class WFSsrv(tornado.web.Application):
 
     class WFSPageHandler(tornado.web.RequestHandler):
         def get(self):
-            try:
-                wfs = self.get_argument("wfs")
-                if wfs in self.application.wfs_keys:
-                    log.info(f"Setting {wfs}")
-                    self.application.wfs = self.application.wfs_systems[wfs]
-                    figkeys = []
-                    ws_uris = []
-                    fig_ids = []
-                    log_uri = "ws://{req.host}/log".format(req=self.request)
-                    for k, f in self.application.figures.items():
-                        manager = self.application.managers[k]
-                        fig_ids.append(manager.num)
-                        figkeys.append(k)
-                        ws_uri = "ws://{req.host}/{figdiv}/ws".format(
-                            req=self.request, figdiv=k
-                        )
-                        ws_uris.append(ws_uri)
+            wfs = self.get_argument("wfs", None)
+            if wfs not in self.application.wfs_keys:
+                log.warning(
+                    f"Must specify valid wfs, not {wfs}. "
+                    f"Valid choices are {self.application.wfs_keys}."
+                )
+                self.send_error(400)
+                return
 
-                    self.render(
-                        "wfs.html",
-                        wfsname=self.application.wfs.name,
-                        ws_uris=ws_uris,
-                        fig_ids=fig_ids,
-                        figures=figkeys,
-                        datadir=str(self.application.datadir) + "/",
-                        modes=self.application.wfs.modes,
-                        default_mode=self.application.wfs.default_mode,
-                        m1_gain=self.application.wfs.m1_gain,
-                        m2_gain=self.application.wfs.m2_gain,
-                        log_uri=log_uri,
-                    )
-            except Exception as e:
-                log.warning(f"Must specify valid wfs: {wfs}. ({e})")
-                self.finish()
+            log.info(f"Setting {wfs}")
+            self.application.wfs = self.application.wfs_systems[wfs]
+            figkeys = []
+            ws_uris = []
+            fig_ids = []
+            log_uri = "ws://{req.host}/log".format(req=self.request)
+            for k in self.application.figures:
+                manager = self.application.managers[k]
+                fig_ids.append(manager.num)
+                figkeys.append(k)
+                ws_uri = "ws://{req.host}/{figdiv}/ws".format(
+                    req=self.request, figdiv=k
+                )
+                ws_uris.append(ws_uri)
+
+            self.render(
+                "wfs.html",
+                wfsname=self.application.wfs.name,
+                ws_uris=ws_uris,
+                fig_ids=fig_ids,
+                figures=figkeys,
+                datadir=str(self.application.datadir) + "/",
+                modes=self.application.wfs.modes,
+                default_mode=self.application.wfs.default_mode,
+                m1_gain=self.application.wfs.m1_gain,
+                m2_gain=self.application.wfs.m2_gain,
+                log_uri=log_uri,
+            )
 
     class ConnectHandler(tornado.web.RequestHandler):
         def get(self):
