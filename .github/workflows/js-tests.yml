@@ -1,0 +1,35 @@
+# Tests for the interactive javascript embedded in the wfssrv templates.
+#
+# This is kept separate from the python workflow because that one delegates to
+# the OpenAstronomy re-usable tox workflow, which has no place to hang a node
+# job. The templates have no build step; node is only ever needed to run these
+# tests.
+
+name: JS Tests
+
+# Match the python workflow: only master and tags on push, everything else is
+# covered by the pull_request trigger.
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+
+jobs:
+  test:
+    name: node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '24']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm test

@@ -68,3 +68,5 @@ wfs.log
 pixi.lock
 
 .codegraph/
+
+node_modules/
