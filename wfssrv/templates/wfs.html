@@ -227,6 +227,12 @@
                 document.getElementById(id).disabled = true;
             });
         }
+        function activate(id) {
+            // buttons get disabled so the operator can't click them mid-loop, but
+            // continuous mode still has to drive them. a native .click() is a no-op
+            // on a disabled control, so dispatch the event directly.
+            document.getElementById(id).dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        }
 
         document.getElementById('focuscorrect').addEventListener('click', function() {
             fetch("focuscorrect").then(r => r.text()).then(function(data) {
@@ -301,9 +307,9 @@
                     enable();
                 } else {
                     if (document.getElementById('connect').checked) {
-                        document.getElementById('focuscorrect').click();
-                        document.getElementById('comacorrect').click();
-                        document.getElementById('m1correct').click();
+                        activate('focuscorrect');
+                        activate('comacorrect');
+                        activate('m1correct');
                     }
                 }
                 rtimer = setTimeout(function() { running = false; }, 5000);
@@ -316,7 +322,7 @@
                 if (data.length > 0) {
                     latest_file = data[0];
                     document.getElementById('datafile').value = latest_file;
-                    document.getElementById('analyze').click();
+                    activate('analyze');
                 }
             });
         });
@@ -328,7 +334,7 @@
                             if (data[0] != latest_file) {
                                 latest_file = data[0];
                                 document.getElementById('datafile').value = latest_file;
-                                document.getElementById('analyze').click();
+                                activate('analyze');
                             }
                         }
                     }
@@ -348,7 +354,7 @@
                 if (turbo != true) {
                     document.getElementById('m1gain').value = 0.2;
                     document.getElementById('m2gain').value = 0.5;
-                    document.getElementById('setgains').click();
+                    activate('setgains');
                 }
                 timer = setTimeout(doNextFile, 1000);
             } else {
@@ -361,7 +367,7 @@
                 }
                 document.getElementById('m1gain').value = orig_m1g;
                 document.getElementById('m2gain').value = orig_m2g;
-                document.getElementById('setgains').click();
+                activate('setgains');
             }
         });
         </script>

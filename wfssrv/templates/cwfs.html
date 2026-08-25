@@ -192,6 +192,12 @@
                 document.getElementById(id).disabled = true;
             });
         }
+        function activate(id) {
+            // buttons get disabled so the operator can't click them mid-loop, but
+            // continuous mode still has to drive them. a native .click() is a no-op
+            // on a disabled control, so dispatch the event directly.
+            document.getElementById(id).dispatchEvent(new MouseEvent("click", {bubbles: true}));
+        }
 
         document.getElementById('focuscorrect').addEventListener('click', function() {
             fetch("focuscorrect").then(r => r.text()).then(function(data) {
@@ -253,9 +259,9 @@
                     enable();
                 } else {
                     if (document.getElementById('connect').checked) {
-                        document.getElementById('focuscorrect').click();
-                        document.getElementById('comacorrect').click();
-                        document.getElementById('m1correct').click();
+                        activate('focuscorrect');
+                        activate('comacorrect');
+                        activate('m1correct');
                     }
                 }
                 rtimer = setTimeout(function() { running = false; }, 5000);
@@ -270,7 +276,7 @@
                     var latest_file2 = data[1];
                     document.getElementById('datafile1').value = latest_file1;
                     document.getElementById('datafile2').value = latest_file2;
-                    document.getElementById('analyze').click();
+                    activate('analyze');
                 }
             });
         });
