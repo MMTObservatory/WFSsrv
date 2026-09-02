@@ -1,0 +1,13 @@
+{
+    "name": "wfssrv-templates",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Tests for the interactive javascript in the wfssrv templates. Not published or installed at runtime; the served page has no build step.",
+    "license": "BSD-3-Clause",
+    "scripts": {
+        "test": "node --test \"wfssrv/tests/js/*.test.js\""
+    },
+    "devDependencies": {
+        "jsdom": "^28.0.0"
+    }
+}

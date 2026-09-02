@@ -26,6 +26,13 @@ The test suite is minimal — it just instantiates `WFSsrv()`. Because the const
 
 Python 3.13 is the minimum (`mmtwfs` requires >= 3.13); `tox.ini` defines `py313` and `py314` envs only. CI (`.github/workflows/wfssrv-tests.yml`) runs `py{313,314}-{cov,astropydev,numpydev}` plus `build_docs`, `linkcheck`, and `codestyle`.
 
+The browser-side javascript in the templates is tested separately, with node's built-in test runner:
+```bash
+npm install   # once; jsdom is the only dependency
+npm test      # runs wfssrv/tests/js/*.test.js
+```
+These tests read the inline `<script>` block out of `wfs.html` and `cwfs.html` and exercise it under jsdom, so they track what the server actually serves rather than a copy. The DOM fixtures in `wfssrv/tests/js/harness.js` are maintained by hand and guarded by a test asserting that every element the template script reaches for is present — if you add or rename a control, update the fixture. Node is only needed to run these tests; the served page has no build step. CI runs them from `.github/workflows/js-tests.yml` on node 22 and 24.
+
 ### Code style
 ```bash
 flake8 wfssrv --max-line-length=135   # lint (max line length is 135)
@@ -37,6 +44,16 @@ black wfssrv                           # format
 tox -e build_docs   # build Sphinx docs
 tox -e linkcheck    # check doc links
 ```
+
+### Deployment
+
+The summit installs from GitHub, into the `mmtwfs` conda environment used there:
+```bash
+pip install git+https://github.com/MMTObservatory/wfssrv#egg=wfssrv --upgrade
+```
+Then restart the server, and have the telescope operator reload their browser page to pick up template changes.
+
+This installs from `master`, and the summit does not run from a working checkout — a fix is not deployed until it is pushed to `master`. Note that the templates ship as package data, so front-end changes reach the summit through this same install, not through a file copy.
 
 ## Architecture
 
