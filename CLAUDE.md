@@ -24,7 +24,7 @@ tox -e py313-cov                # with coverage (what CI runs)
 ```
 The test suite is minimal — it just instantiates `WFSsrv()`. Because the constructor builds all four WFS systems via `mmtwfs`'s `WFSFactory`, even this smoke test requires `mmtwfs` and `camsrv` installed.
 
-Python 3.13 is the minimum (`mmtwfs` requires >= 3.13); `tox.ini` defines `py313` and `py314` envs only. CI (`.github/workflows/wfssrv-tests.yml`) runs `py{313,314}-{cov,astropydev,numpydev}` plus `build_docs`, `linkcheck`, and `codestyle`.
+Python 3.13 is the minimum (`mmtwfs` requires >= 3.13); `tox.ini` defines `py313` and `py314` envs, plus `devdeps` (nightly wheels of numpy, astropy, scipy, matplotlib, scikit-image and poppy develop) for `py313`–`py315`. CI (`.github/workflows/wfssrv-tests.yml`) runs `py313`, `py314-cov` (the only coverage upload), `py314-devdeps` and `py315-devdeps` (ahead of the 3.15 release), plus `build_docs`, `linkcheck`, and `codestyle`.
 
 The browser-side javascript in the templates is tested separately, with node's built-in test runner:
 ```bash
