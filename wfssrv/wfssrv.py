@@ -42,7 +42,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_webagg import (
     FigureCanvasWebAgg,
     FigureManagerWebAgg,
-    new_figure_manager_given_figure,
 )
 
 from mmtwfs.wfs import WFSFactory
@@ -69,6 +68,20 @@ FIGURE_TITLES = {
     "forces": "Requested M1 Actuator Forces",
     "totalforces": "Total M1 Actuator Forces",
 }
+
+
+class FullFrameCanvas(FigureCanvasWebAgg):
+    """
+    WebAgg canvas that sends a full frame after every browser resize.
+
+    The browser clears its canvas whenever it resizes it, e.g. when a hidden tab is shown. If the figure is already
+    that size, stock WebAgg sends a diff against the last frame, which the browser no longer has, and the panel
+    stays blank until it is resized by hand.
+    """
+
+    def handle_resize(self, event):
+        self._force_full = True
+        super().handle_resize(event)
 
 
 def is_coadded_spot(filename):
@@ -886,14 +899,17 @@ class WFSsrv(tornado.web.Application):
     def refresh_figure(self, k, figure):
         if k not in self.managers:
             fignum = id(figure)
-            self.managers[k] = new_figure_manager_given_figure(fignum, figure)
+            self.managers[k] = FullFrameCanvas.new_manager(figure, fignum)
             self.fig_id_map[fignum] = self.managers[k]
         else:
             # for high-DPI displays, we need to set the device pixel ratio
             # after resetting the canvas to the new figure. it used to happen
             # automatically...
             scale = self.managers[k].canvas.device_pixel_ratio
-            canvas = FigureCanvasWebAgg(figure)
+            # the browser's canvas keeps the size it agreed with the previous figure. give the new one the same
+            # size, as a resize would, or it is drawn cropped and magnified until the panel is resized by hand.
+            figure.set_size_inches(self.managers[k].canvas.figure.get_size_inches(), forward=False)
+            canvas = FullFrameCanvas(figure)
             canvas._set_device_pixel_ratio(scale)
             self.managers[k].canvas = canvas
             self.managers[k].canvas.manager = self.managers[k]
