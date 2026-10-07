@@ -426,6 +426,29 @@ class WFSsrv(tornado.web.Application):
                         figures = create_default_figures()
                         figures["slopes"] = results["figures"]["slopes"]
                         self.application.refresh_figures(figures=figures)
+                elif results.get("focus_only", False):
+                    grid = results["grid"]
+                    log.warning(
+                        f"{filename}: spots too blurred for full analysis; using focus-only correction from the "
+                        f"grid period (scale = {grid['scale']:.5f} +/- {grid['scale_err']:.5f}, "
+                        f"SNR = {grid['snr'].min():.0f})"
+                    )
+                    # only focus is valid. clear anything left pending from an earlier image.
+                    self.application.has_pending_m1 = False
+                    self.application.has_pending_coma = False
+                    self.application.has_pending_recenter = False
+                    self.application.pending_focus = results["pending_focus"]
+                    self.application.has_pending_focus = True
+                    zvec = results["zernike"]
+                    self.application.wavefront_fit = zvec.copy()
+                    zvec.save(
+                        filename=self.application.datadir / (filename + ".periodicity.zernike")
+                    )
+                    figures = create_default_figures()
+                    figures["slopes"] = (
+                        results["figures"].get("periodicity") or results["figures"]["slopes"]
+                    )
+                    self.application.refresh_figures(figures=figures)
                 else:
                     log.error(f"Wavefront measurement failed: {filename}")
                     figures = create_default_figures()
