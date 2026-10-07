@@ -22,6 +22,7 @@
         <script src="{{ static_url("js/bootstrap.bundle.min.js") }}"></script>
         <script src="{{ static_url("js/plotly-latest.min.js") }}"></script>
         <script src="/mpl.js"></script>
+        <script src="{{ static_url("js/pixelratio.js") }}"></script>
 
         <script>
             /* This is a callback that is called when the user saves
@@ -43,6 +44,7 @@
                  also be a "fake" websocket that underneath multiplexes messages
                  from multiple figures, if necessary. */
                 var websocket_type = mpl.get_websocket_type();
+                var figures = [];
 
                 {% for ws_uri, fig_id, figure in zip(ws_uris, fig_ids, figures) %}
                     var websocket_{{ figure }} = new websocket_type("{{ ws_uri }}");
@@ -58,7 +60,9 @@
                         // The HTML element in which to place the figure
                         document.getElementById('{{ figure }}'),
                     );
+                    figures.push(fig);
                 {% end %}
+                watchPixelRatio(figures);
 
                 getZerns();
 
