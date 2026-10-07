@@ -2,6 +2,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import importlib.resources
+import logging
 import os
 import pathlib
 import shutil
@@ -40,6 +41,7 @@ def _focus_only_results():
 class TestFocusOnly(AsyncHTTPTestCase):
     def get_app(self):
         self.datadir = tempfile.TemporaryDirectory()
+        self.root_handlers = list(logging.getLogger("").handlers)
         with patch.dict(os.environ, {"WFSROOT": self.datadir.name}):
             app = WFSsrv()
         self.fitsfile = pathlib.Path(self.datadir.name) / FITSFILE.name
@@ -50,6 +52,12 @@ class TestFocusOnly(AsyncHTTPTestCase):
     def tearDown(self):
         super().tearDown()
         plt.close("all")
+        # the app logs to <datadir>/wfs.log via the root logger. drop that handler before the directory goes away,
+        # or later tests log into a missing file.
+        root = logging.getLogger("")
+        for h in set(root.handlers) - set(self.root_handlers):
+            root.removeHandler(h)
+            h.close()
         self.datadir.cleanup()
 
     def test_focus_only_offers_focus_alone(self):
