@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import astropy.units as u
 import matplotlib.pyplot as plt
+from matplotlib.text import Text
 import numpy as np
 from tornado.testing import AsyncHTTPTestCase
 
@@ -35,6 +36,7 @@ def _focus_only_results():
         "grid": {"scale": 0.995, "scale_err": 0.003, "snr": np.array([1310.0, 1400.0])},
         "zernike": ZernikeVector(Z04=-390.0),
         "pending_focus": 2.5 * u.um,
+        "focus_err": 0.4 * u.um,
         "figures": {"slopes": slopes_fig, "periodicity": period_fig},
     }
 
@@ -73,7 +75,13 @@ class TestFocusOnly(AsyncHTTPTestCase):
         assert not (app.has_pending_m1 or app.has_pending_coma or app.has_pending_recenter)
         assert app.wavefront_fit["Z04"] == -390.0 * u.nm
         assert pathlib.Path(str(self.fitsfile) + ".periodicity.zernike").exists()
-        assert app.figures["slopes"].get_label() == "Grid Periodicity"
+        # the periodicity plot stands in for the fit residuals; the slopes panel shows just the processed image
+        assert app.figures["residuals"].get_label() == "Grid Periodicity"
+        assert app.figures["slopes"].get_label() == "WFS Image"
+        # the wavefront and mode-amplitude panels show the measured focus term
+        titles = {k: " ".join(t.get_text() for t in app.figures[k].findobj(Text)) for k in ("barchart", "fringebarchart")}
+        assert "Focus-only" in titles["barchart"]
+        assert "Focus: 2.5 um +/- 0.4 um" in titles["fringebarchart"]
 
     def test_analysis_exception_does_not_wedge_server(self):
         app = self._app

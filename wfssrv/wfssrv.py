@@ -441,12 +441,8 @@ class WFSsrv(tornado.web.Application):
                             figures["slopes"] = results["figures"]["slopes"]
                             self.application.refresh_figures(figures=figures)
                     elif results.get("focus_only", False):
-                        grid = results["grid"]
-                        log.warning(
-                            f"{filename}: spots too blurred for full analysis; using focus-only correction from the "
-                            f"grid period (scale = {grid['scale']:.5f} +/- {grid['scale_err']:.5f}, "
-                            f"SNR = {grid['snr'].min():.0f})"
-                        )
+                        # mmtwfs has already logged the grid scale, SNR and focus correction, one per line
+                        log.warning(f"{filename}: spots too blurred for full analysis; only focus can be corrected")
                         # only focus is valid. clear anything left pending from an earlier image.
                         self.application.has_pending_m1 = False
                         self.application.has_pending_coma = False
@@ -459,8 +455,29 @@ class WFSsrv(tornado.web.Application):
                             filename=self.application.datadir / (filename + ".periodicity.zernike")
                         )
                         figures = create_default_figures()
-                        figures["slopes"] = (
-                            results["figures"].get("periodicity") or results["figures"]["slopes"]
+                        # no apertures or fit here: show the processed image, and the grid periodicity in place of
+                        # the fit residuals
+                        figures["slopes"] = results["figures"]["slopes"]
+                        if results["figures"].get("periodicity") is not None:
+                            figures["residuals"] = results["figures"]["periodicity"]
+                        # only Z04 is measured. the other terms in zvec are just the reference aberrations, so leave
+                        # them out of the charts rather than suggest they were seen.
+                        zfocus = ZernikeVector(
+                            Z04=zvec["Z04"].value, errorbars={"Z04": zvec.errorbars.get("Z04", 0.0 * u.nm).value}
+                        )
+                        focus = results["pending_focus"]
+                        focus_err = results.get("focus_err")
+                        focus_str = f"{focus:0.1f}" + (f" +/- {focus_err:0.1f}" if focus_err is not None else "")
+                        # the defocus that sends a frame here is usually far beyond the usual chart limits, so let the
+                        # scales grow to fit it
+                        figures["barchart"] = zfocus.bar_chart(
+                            title=f"Focus-only Wavefront RMS: {zfocus.rms.round(1)} "
+                            f"({np.round(zfocus.rms.value / 550.0, 2)} waves)",
+                            max_c=max(500 * u.nm, 1.1 * zfocus.rms),
+                        )
+                        figures["fringebarchart"] = zfocus.fringe_bar_chart(
+                            title=f"Focus: {focus_str} (focus-only)",
+                            max_c=max(1500 * u.nm, 1.1 * np.abs(zfocus["Z04"])),
                         )
                         self.application.refresh_figures(figures=figures)
                     else:
