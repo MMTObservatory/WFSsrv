@@ -73,3 +73,16 @@ class TestFocusOnly(AsyncHTTPTestCase):
         assert app.wavefront_fit["Z04"] == -390.0 * u.nm
         assert pathlib.Path(str(self.fitsfile) + ".periodicity.zernike").exists()
         assert app.figures["slopes"].get_label() == "Grid Periodicity"
+
+    def test_analysis_exception_does_not_wedge_server(self):
+        app = self._app
+        # e.g. photutils' Background2D raising on an image that isn't a raw WFS frame
+        with patch.object(app.wfs, "measure_slopes", side_effect=ValueError("All boxes contain <= 234.0 pixels")):
+            resp = self.fetch(f"/analyze?connect=false&fitsfile={self.fitsfile}")
+        assert resp.code == 200
+        assert not app.busy
+
+        # the next image still gets analyzed
+        with patch.object(app.wfs, "measure_slopes", return_value=_focus_only_results()) as measure:
+            self.fetch(f"/analyze?connect=false&fitsfile={self.fitsfile}")
+        measure.assert_called_once()
