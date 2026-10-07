@@ -616,14 +616,18 @@ class WFSsrv(tornado.web.Application):
 
     class PendingHandler(tornado.web.RequestHandler):
         def get(self):
-            self.write(f"M1: {self.application.has_pending_m1}")
-            self.write(f"M2: {self.application.has_pending_m2}")
-            self.write(f"recenter: {self.application.has_pending_recenter}")
+            self.write(
+                f"M1: {self.application.has_pending_m1}\n"
+                f"focus: {self.application.has_pending_focus}\n"
+                f"coma: {self.application.has_pending_coma}\n"
+                f"recenter: {self.application.has_pending_recenter}"
+            )
             self.finish()
 
         def post(self):
             self.application.has_pending_m1 = False
-            self.application.has_pending_m2 = False
+            self.application.has_pending_focus = False
+            self.application.has_pending_coma = False
             self.application.has_pending_recenter = False
             self.finish()
 

@@ -40,6 +40,7 @@ def _focus_only_results():
 
 class TestFocusOnly(AsyncHTTPTestCase):
     def get_app(self):
+        plt.close("all")  # each app opens its own figures; don't inherit earlier tests'
         self.datadir = tempfile.TemporaryDirectory()
         self.root_handlers = list(logging.getLogger("").handlers)
         with patch.dict(os.environ, {"WFSROOT": self.datadir.name}):
