@@ -449,9 +449,14 @@ class WFSsrv(tornado.web.Application):
                         self.application.has_pending_recenter = False
                         self.application.pending_focus = results["pending_focus"]
                         self.application.has_pending_focus = True
+                        # only Z04 is measured. older mmtwfs also returned the reference's other terms, which would
+                        # read as measured aberrations, so keep Z04 alone everywhere.
                         zvec = results["zernike"]
-                        self.application.wavefront_fit = zvec.copy()
-                        zvec.save(
+                        zfocus = ZernikeVector(
+                            Z04=zvec["Z04"].value, errorbars={"Z04": zvec.errorbars.get("Z04", 0.0 * u.nm).value}
+                        )
+                        self.application.wavefront_fit = zfocus
+                        zfocus.save(
                             filename=self.application.datadir / (filename + ".periodicity.zernike")
                         )
                         figures = create_default_figures()
@@ -460,11 +465,6 @@ class WFSsrv(tornado.web.Application):
                         figures["slopes"] = results["figures"]["slopes"]
                         if results["figures"].get("periodicity") is not None:
                             figures["residuals"] = results["figures"]["periodicity"]
-                        # only Z04 is measured. the other terms in zvec are just the reference aberrations, so leave
-                        # them out of the charts rather than suggest they were seen.
-                        zfocus = ZernikeVector(
-                            Z04=zvec["Z04"].value, errorbars={"Z04": zvec.errorbars.get("Z04", 0.0 * u.nm).value}
-                        )
                         focus = results["pending_focus"]
                         focus_err = results.get("focus_err")
                         focus_str = f"{focus:0.1f}" + (f" +/- {focus_err:0.1f}" if focus_err is not None else "")

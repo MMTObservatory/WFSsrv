@@ -34,7 +34,8 @@ def _focus_only_results():
         "focus_only": True,
         "method": "periodicity",
         "grid": {"scale": 0.995, "scale_err": 0.003, "snr": np.array([1310.0, 1400.0])},
-        "zernike": ZernikeVector(Z04=-390.0),
+        # older mmtwfs also returned the reference's other terms
+        "zernike": ZernikeVector(Z04=-390.0, Z05=12.0),
         "pending_focus": 2.5 * u.um,
         "focus_err": 0.4 * u.um,
         "figures": {"slopes": slopes_fig, "periodicity": period_fig},
@@ -74,6 +75,7 @@ class TestFocusOnly(AsyncHTTPTestCase):
         assert app.has_pending_focus and app.pending_focus == 2.5 * u.um
         assert not (app.has_pending_m1 or app.has_pending_coma or app.has_pending_recenter)
         assert app.wavefront_fit["Z04"] == -390.0 * u.nm
+        assert list(app.wavefront_fit.coeffs) == ["Z04"]  # only defocus is measured
         assert pathlib.Path(str(self.fitsfile) + ".periodicity.zernike").exists()
         # the periodicity plot stands in for the fit residuals; the slopes panel shows just the processed image
         assert app.figures["residuals"].get_label() == "Grid Periodicity"
