@@ -2,6 +2,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import importlib.resources
+import json
 import logging
 import os
 import pathlib
@@ -86,3 +87,17 @@ class TestFocusOnly(AsyncHTTPTestCase):
         with patch.object(app.wfs, "measure_slopes", return_value=_focus_only_results()) as measure:
             self.fetch(f"/analyze?connect=false&fitsfile={self.fitsfile}")
         measure.assert_called_once()
+
+    def test_coadded_spot_rejected(self):
+        # reanalyze writes <frame>.coadded_spot.fits beside the raw frames; it isn't a WFS image
+        coadded = self.fitsfile.with_name(self.fitsfile.stem + ".coadded_spot.fits")
+        shutil.copy(self.fitsfile, coadded)
+        with patch.object(self._app.wfs, "measure_slopes") as measure:
+            resp = self.fetch(f"/analyze?connect=false&fitsfile={coadded}")
+        assert resp.code == 200
+        measure.assert_not_called()
+
+    def test_files_excludes_coadded_spot(self):
+        shutil.copy(self.fitsfile, self.fitsfile.with_name(self.fitsfile.stem + ".coadded_spot.fits"))
+        resp = self.fetch("/files")
+        assert json.loads(resp.body) == [self.fitsfile.name]

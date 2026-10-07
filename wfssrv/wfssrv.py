@@ -71,6 +71,13 @@ FIGURE_TITLES = {
 }
 
 
+def is_coadded_spot(filename):
+    """
+    reanalyze writes <frame>.coadded_spot.fits beside the raw frames. these aren't WFS images and can't be analyzed.
+    """
+    return str(filename).endswith(".coadded_spot.fits")
+
+
 def create_default_figures():
     zv = ZernikeVector(Z04=1)
     figures = {}
@@ -290,6 +297,8 @@ class WFSsrv(tornado.web.Application):
 
             if self.application.busy:
                 log.warning(f"Still analyzing the previous image; skipping {filename}")
+            elif is_coadded_spot(filename):
+                log.error(f"{filename} is a coadded spot image from reanalyze, not a WFS image; skipping")
             elif not os.path.isfile(filename):
                 log.error(f"No such file: {filename}")
             else:
@@ -654,7 +663,8 @@ class WFSsrv(tornado.web.Application):
                 fullfiles = []
             files = []
             for f in fullfiles:
-                files.append(f.name)
+                if not is_coadded_spot(f):
+                    files.append(f.name)
             files.reverse()
             self.write(json.dumps(files))
             self.finish()
