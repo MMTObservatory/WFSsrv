@@ -348,6 +348,13 @@
                 timer = undefined;
             }
         }
+        // the band menu is further down the page than this script, so listen for it on the document
+        document.addEventListener('change', function(ev) {
+            if (ev.target.id == 'psfband') {
+                // the server redraws the PSF panel in the new band
+                fetch("psfband?band=" + encodeURIComponent(ev.target.value));
+            }
+        });
         document.getElementById('continuous').addEventListener('click', function() {
             var turbo = document.getElementById('turbo').checked;
             latest_file = document.getElementById('datafile').value;
@@ -391,6 +398,9 @@
                     <a class="nav-link" id='bar-tab' href="#zerns" aria-controls="zerns" role="tab" data-bs-toggle="tab" aria-selected="false">RMS Wavefront Errors</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" id='psf-tab' href="#psfs" aria-controls="psfs" role="tab" data-bs-toggle="tab" aria-selected="false">PSF</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" id='cell-tab' href="#cell" aria-controls="cell" role="tab" data-bs-toggle="tab" aria-selected="false">Cell Forces</a>
                 </li>
             </ul>
@@ -432,6 +442,29 @@
                             <tr>
                                 <td colspan="2" align="center">
                                     <div id="barchart"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div role="tabpanel" class="tab-pane" id="psfs" aria-labelledby="psf-tab">
+                    <div class="d-flex justify-content-center align-items-center gap-2 my-2">
+                        <label for="psfband" class="form-label mb-0">Wavelength band</label>
+                        <select class="form-select w-auto" id="psfband">
+                            {% for band, label in psf_bands %}
+                                {% if band == psf_band %}
+                                    <option value="{{ band }}" selected>{{ label }}</option>
+                                {% else %}
+                                    <option value="{{ band }}">{{ label }}</option>
+                                {% end %}
+                            {% end %}
+                        </select>
+                    </div>
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td colspan="2" align="center">
+                                    <div id="psf"></div>
                                 </td>
                             </tr>
                         </tbody>

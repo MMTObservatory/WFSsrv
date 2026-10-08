@@ -34,13 +34,16 @@ const button = (id) => `<button type="button" id="${id}"></button>`;
 const offButton = (id) => `<button type="button" id="${id}" disabled="disabled"></button>`;
 const check = (id) => `<input type="checkbox" id="${id}">`;
 
+const PSFBAND = '<select id="psfband"><option value="500nm" selected></option><option value="K"></option></select>';
+
 // Minimal stand-ins for the control markup. Kept by hand rather than generated
 // so that a template that grows a new control trips the fixture guard in
 // controls.test.js instead of silently going untested.
 const FIXTURES = {
     // the MMIRS page renders no mode selector, so the analyze url is built
     // differently there. mode: false reproduces that layout.
-    "wfs.html": ({ mode = true } = {}) => `
+    // psfband: false leaves out the PSF band menu, which the real page only adds after the control script has run
+    "wfs.html": ({ mode = true, psfband = true } = {}) => `
         ${["focuscorrect", "comacorrect", "m1correct", "recenter"].map(offButton).join("")}
         ${["clear", "clearm1", "clearm2", "setgains", "analyze", "latest", "continuous"].map(button).join("")}
         <input id="m1gain" value="0.5">
@@ -49,7 +52,8 @@ const FIXTURES = {
         <input id="datafile" value="">
         ${mode ? '<select id="mode"><option value="blue" selected></option></select>' : ""}
         <span id="datadir">/data/</span>
-        <span id="zernikes"></span>`,
+        <span id="zernikes"></span>
+        ${psfband ? PSFBAND : ""}`,
     "cwfs.html": () => `
         ${["focuscorrect", "comacorrect", "m1correct", "recenter"].map(offButton).join("")}
         ${["clear", "clearm1", "clearm2", "setgains", "analyze", "latest"].map(button).join("")}
@@ -134,4 +138,4 @@ function mount(template, opts = {}) {
     };
 }
 
-module.exports = { mount, scriptBlock, referencedIds, FIXTURES };
+module.exports = { mount, scriptBlock, referencedIds, FIXTURES, PSFBAND };
