@@ -47,6 +47,7 @@ from matplotlib.backends.backend_webagg import (
 from mmtwfs.wfs import WFSFactory
 from mmtwfs.zernike import ZernikeVector
 from mmtwfs.telescope import MMT
+from mmtwfs.psf import PSF_BANDS
 
 
 matplotlib.use("webagg")
@@ -67,7 +68,18 @@ FIGURE_TITLES = {
     "barchart": "RMS Wavefront Errors",
     "forces": "Requested M1 Actuator Forces",
     "totalforces": "Total M1 Actuator Forces",
+    "psf": "Optics-only and Delivered PSFs",
 }
+
+
+def psf_band_label(band):
+    """
+    Label for a PSF band in the band menu, e.g. "J (1250 nm)"
+    """
+    center = PSF_BANDS[band][0].to(u.nm).value
+    if band == "500nm":
+        return f"{center:.0f} nm (seeing reference)"
+    return f"{band} ({center:.0f} nm)"
 
 
 class FullFrameCanvas(FigureCanvasWebAgg):
@@ -126,6 +138,11 @@ def create_default_figures():
     # stubs for mirror forces
     figures["totalforces"] = tel.plot_forces(forces)
     figures["totalforces"].set_label(FIGURE_TITLES["totalforces"])
+
+    # stub for the PSFs. same shape as the side-by-side optics and delivered PSF plots.
+    figures["psf"] = plt.figure(figsize=(12, 5))
+    figures["psf"].set_label(FIGURE_TITLES["psf"])
+    figures["psf"].text(0.5, 0.5, "PSFs appear after a wavefront measurement", ha="center", va="center")
     plt.tight_layout()
 
     return figures
@@ -205,6 +222,8 @@ class WFSsrv(tornado.web.Application):
                 default_mode=self.application.wfs.default_mode,
                 m1_gain=self.application.wfs.m1_gain,
                 m2_gain=self.application.wfs.m2_gain,
+                psf_bands=[(b, psf_band_label(b)) for b in PSF_BANDS],
+                psf_band=self.application.psf_band,
                 log_uri=log_uri,
             )
 
@@ -284,8 +303,14 @@ class WFSsrv(tornado.web.Application):
             self.application.figures["forces"].set_label("Requested M1 Actuator Forces")
             return "forces"
 
+        @run_on_executor
+        def make_psf(self):
+            log.debug("Making PSF plot...")
+            return self.application.update_psf()
+
         def complete_refresh(self, key):
-            self.application.refresh_figure(key, self.application.figures[key])
+            if key is not None:
+                self.application.refresh_figure(key, self.application.figures[key])
 
         def get(self):
             self.application.close_figures()
@@ -316,6 +341,9 @@ class WFSsrv(tornado.web.Application):
                 log.error(f"No such file: {filename}")
             else:
                 self.application.busy = True
+                # the PSF panel follows this image. forget the last one's wavefront in case this one fails.
+                self.application.psf_wavefront = None
+                self.application.psf_seeing = None
                 try:
                     if connect == "true":
                         self.application.wfs.connect()
@@ -354,6 +382,10 @@ class WFSsrv(tornado.web.Application):
                             zvec_raw = zresults["rot_zernike"]
                             zvec_ref = zresults["ref_zernike"]
                             self.application.wavefront_fit = zvec.copy()
+                            self.application.psf_wavefront = zvec.copy()
+                            # the measured wavefront is as observed so pair it with the seeing at the observed airmass
+                            self.application.psf_seeing = results.get("raw_vlt_seeing")
+                            self.async_plot(self.make_psf)
 
                             m1gain = self.application.wfs.m1_gain
 
@@ -493,6 +525,9 @@ class WFSsrv(tornado.web.Application):
                             max_c=max(1500 * u.nm, 1.1 * np.abs(zfocus["Z04"])),
                         )
                         self.application.refresh_figures(figures=figures)
+                        # no seeing is measured from blurred spots, so this shows the optics-only PSF of the defocus
+                        self.application.psf_wavefront = zfocus.copy()
+                        self.async_plot(self.make_psf)
                     else:
                         log.error(f"Wavefront measurement failed: {filename}")
                         figures = create_default_figures()
@@ -699,6 +734,27 @@ class WFSsrv(tornado.web.Application):
             self.write(json.dumps(files))
             self.finish()
 
+    class PSFBandHandler(tornado.web.RequestHandler):
+        executor = ThreadPoolExecutor(max_workers=1)
+
+        @run_on_executor
+        def make_psf(self):
+            return self.application.update_psf()
+
+        @tornado.gen.coroutine
+        def get(self):
+            band = self.get_argument("band", None)
+            if band not in PSF_BANDS:
+                log.warning(f"Unknown PSF band, {band}. Valid bands are {list(PSF_BANDS)}.")
+                self.send_error(400)
+                return
+            self.application.psf_band = band
+            key = yield self.make_psf()
+            if key is not None:
+                self.application.refresh_figure(key, self.application.figures[key])
+            self.write(json.dumps(band))
+            self.finish()
+
     class ZernikeFitHandler(tornado.web.RequestHandler):
         def get(self):
             self.write(json.dumps(self.application.wavefront_fit.pretty_print()))
@@ -722,6 +778,8 @@ class WFSsrv(tornado.web.Application):
         def get(self):
             self.application.close_figures()
             self.application.wfs.clear_corrections()
+            self.application.psf_wavefront = None
+            self.application.psf_seeing = None
             figures = create_default_figures()
             self.application.refresh_figures(figures=figures)
             log_str = "Cleared M1 forces and M2 wfs/m1spherical offsets...."
@@ -920,6 +978,19 @@ class WFSsrv(tornado.web.Application):
         # browser.
         self.managers[k].set_window_title(figure.get_label() or FIGURE_TITLES.get(k, k))
 
+    def update_psf(self):
+        """
+        Plot the PSFs of the last measured wavefront in the selected band. Returns the figure key, or None if there
+        is no wavefront to show.
+        """
+        if self.psf_wavefront is None or self.wfs is None:
+            return None
+        _, fig = self.wfs.telescope.psf(
+            self.psf_wavefront.copy(), band=self.psf_band, seeing=self.psf_seeing, plot=True
+        )
+        self.figures["psf"] = fig
+        return "psf"
+
     def refresh_figures(self, figures=None):
         if figures is None:
             self.figures = create_default_figures()
@@ -1010,6 +1081,9 @@ class WFSsrv(tornado.web.Application):
         self.fig_id_map = {}
         self.refresh_figures()
         self.wavefront_fit = ZernikeVector(Z04=1)
+        self.psf_wavefront = None
+        self.psf_seeing = None
+        self.psf_band = "500nm"
 
         if "REDISHOST" in os.environ:
             redis_host = os.environ["REDISHOST"]
@@ -1048,6 +1122,7 @@ class WFSsrv(tornado.web.Application):
             (r"/clearpending", self.PendingHandler),
             (r"/files", self.FilesHandler),
             (r"/zfit", self.ZernikeFitHandler),
+            (r"/psfband", self.PSFBandHandler),
             (r"/clear", self.ClearHandler),
             (r"/clearm1", self.ClearM1Handler),
             (r"/clearm2", self.ClearM2Handler),

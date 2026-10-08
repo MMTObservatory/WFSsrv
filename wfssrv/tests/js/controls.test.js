@@ -6,7 +6,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert");
-const { mount, referencedIds } = require("./harness.js");
+const { mount, referencedIds, PSFBAND } = require("./harness.js");
 
 // a new frame has landed on top of the one currently loaded
 const NEW_FRAME = ["wfs_0002.fits", "wfs_0001.fits"];
@@ -129,6 +129,33 @@ test("the cwfs latest button loads the two newest frames and analyzes them", asy
     assert.equal(page.el("datafile1").value, "cwfs_0002.fits");
     assert.equal(page.el("datafile2").value, "cwfs_0001.fits");
     assert.equal(page.count("analyze"), 1);
+});
+
+test("choosing a PSF band asks the server to redraw the PSF in that band", async () => {
+    const page = mount("wfs.html");
+    const menu = page.el("psfband");
+    menu.value = "K";
+    menu.dispatchEvent(new page.win.Event("change", { bubbles: true }));
+    await page.settle();
+
+    assert.deepEqual(page.urls("psfband"), ["psfband?band=K"]);
+});
+
+test("the PSF band menu works even though it comes after the control script in the page", async () => {
+    // the control script sits above the tab panels. reaching for the menu while the script runs would throw and
+    // take every control set up after it, continuous mode included, down with it.
+    const page = mount("wfs.html", { files: NEW_FRAME, psfband: false });
+    page.doc.body.insertAdjacentHTML("beforeend", PSFBAND);
+
+    const menu = page.el("psfband");
+    menu.value = "K";
+    menu.dispatchEvent(new page.win.Event("change", { bubbles: true }));
+    await page.settle();
+    assert.deepEqual(page.urls("psfband"), ["psfband?band=K"]);
+
+    startContinuous(page);
+    await page.advance(1500);
+    assert.equal(page.count("analyze"), 1, "continuous mode should still run");
 });
 
 // The fixtures in harness.js are maintained by hand. This keeps them honest: if
