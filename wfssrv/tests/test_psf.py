@@ -112,3 +112,20 @@ class TestPSF(AsyncHTTPTestCase):
         stub = app.figures["psf"]
         self.fetch("/psfband?band=H")
         assert app.figures["psf"] is stub
+
+    def test_clear_forgets_wavefront(self):
+        app = self._app
+        self.fetch(f"/analyze?connect=false&fitsfile={self.fitsfile}")
+        assert app.psf_wavefront is not None and app.psf_seeing is not None
+        # stand in for the hexapod and cell, which clearing would otherwise command if connected
+        with patch.object(app.wfs, "clear_corrections") as clear:
+            resp = self.fetch("/clear")
+        assert resp.code == 200
+        clear.assert_called_once()
+        assert app.psf_wavefront is None
+        assert app.psf_seeing is None
+        # the PSF panel is back to its placeholder and the band menu doesn't bring the old PSF back
+        stub = app.figures["psf"]
+        assert "Optics" not in _titles(stub)
+        self.fetch("/psfband?band=H")
+        assert app.figures["psf"] is stub
